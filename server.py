@@ -12,11 +12,19 @@ import uuid
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
+app.config['SECRET_KEY'] = 'dev-secret-key-change-this'
 
-DATABASE = 'fretlog.db'
+DATABASE = os.getenv('DATABASE_PATH', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fretlog.db'))
 
 def get_db():
     """Get database connection with row factory for dict results"""
+    db_dir = os.path.dirname(DATABASE)
+    if db_dir and not os.path.exists(db_dir):
+        try:
+            os.makedirs(db_dir)
+        except OSError:
+            pass # Permission issue or exists
+    
     if 'db' not in g:
         g.db = sqlite3.connect(DATABASE, timeout=30)
         g.db.row_factory = sqlite3.Row

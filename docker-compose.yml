@@ -1,10 +1,12 @@
 services:
   fretlog:
-    build: .
-    image: ghcr.io/aFFekopp/fretlog:latest
+
+    image: ghcr.io/affekopp/fretlog:main
     container_name: fretlog
     restart: unless-stopped
     ports:
       - "5000:5000"
+    environment:
+      - DATABASE_PATH=/app/data/fretlog.db
     volumes:
-      - ./fretlog.db:/app/fretlog.db
+      - ./data:/app/data
