@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="FretLog - Manage your account settings, instruments, and categories">
+    <title>Settings - FretLog</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/styles.css">
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('fretlog-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <a href="index.html" class="logo">
+                    <svg class="logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="16" cy="16" r="14" fill="#2E3A8C" />
+                        <path d="M11 22V10L14 10V22H11Z" fill="white" />
+                        <circle cx="11.5" cy="23.5" r="2.5" fill="white" />
+                        <path d="M18 22V10L21 10V22H18Z" fill="white" />
+                        <circle cx="18.5" cy="23.5" r="2.5" fill="white" />
+                        <path d="M14 11H21V13H14V11Z" fill="white" />
+                    </svg>
+                    <span>FretLog</span>
+                </a>
+                <nav class="main-nav">
+                    <a href="index.html" class="nav-link" data-page="dashboard">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7" rx="1" />
+                            <rect x="14" y="3" width="7" height="7" rx="1" />
+                            <rect x="3" y="14" width="7" height="7" rx="1" />
+                            <rect x="14" y="14" width="7" height="7" rx="1" />
+                        </svg>
+                        Dashboard
+                    </a>
+                    <a href="sessions.html" class="nav-link" data-page="sessions">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        Sessions
+                    </a>
+                    <a href="library.html" class="nav-link" data-page="library">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                        </svg>
+                        Library
+                    </a>
+                    <a href="statistics.html" class="nav-link" data-page="statistics">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10" />
+                            <line x1="12" y1="20" x2="12" y2="4" />
+                            <line x1="6" y1="20" x2="6" y2="14" />
+                        </svg>
+                        Statistics
+                    </a>
+                </nav>
+            </div>
+            <div class="header-right">
+                <div id="global-active-item-info" class="flex flex-col items-end hidden"
+                    style="margin-right: 12px; justify-content: center;">
+                    <span id="global-active-item-name" class="text-secondary font-semibold"
+                        style="font-size: 0.85rem; line-height: 1.2;"></span>
+                    <span id="global-active-item-timer" class="text-primary font-bold"
+                        style="font-size: 0.8rem; line-height: 1.2;">00:00</span>
+                </div>
+                <button class="icon-btn hidden" id="global-pause-btn" title="Pause Active Timer"
+                    onclick="toggleGlobalTimer()"
+                    style="color: var(--color-primary); background: rgba(74, 95, 217, 0.1);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="theme-toggle" title="Toggle theme">
+                    <span class="theme-icon">🌙</span>
+                </button>
+                <a href="settings.html" class="icon-btn" title="Settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                </a>
+                <div class="user-profile dropdown" id="user-dropdown">
+                    <div class="user-avatar" id="user-avatar">M</div>
+                    <div class="user-info">
+                        <span class="user-name" id="user-name">Musician</span>
+                        <span class="user-instrument" id="user-instrument">Guitar</span>
+                    </div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" id="change-instrument-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                            Change Instrument
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <script>
+            (function () {
+                try {
+                    const user = JSON.parse(localStorage.getItem('fretlog_user_cache'));
+                    if (user) {
+                        document.getElementById('user-name').textContent = user.name || 'Musician';
+                        document.getElementById('user-avatar').textContent = (user.name || 'M').charAt(0).toUpperCase();
+
+                        const instruments = JSON.parse(localStorage.getItem('fretlog_instruments_cache') || '[]');
+                        if (instruments.length && user.defaultInstrumentId) {
+                            const inst = instruments.find(i => i.id === user.defaultInstrumentId);
+                            if (inst) document.getElementById('user-instrument').textContent = inst.name;
+                        }
+                    }
+                } catch (e) { console.warn('Preload error', e); }
+            })();
+        </script>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Settings</h1>
+                    <p class="text-secondary mt-sm">Manage your profile, instruments, and preferences</p>
+                </div>
+            </div>
+
+            <div class="grid grid-2 gap-lg">
+                <!-- Profile Settings -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Profile</h3>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-input" id="profile-name" placeholder="Your name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email (optional)</label>
+                        <input type="email" class="form-input" id="profile-email" placeholder="your@email.com">
+                    </div>
+
+                    <button class="btn btn-primary" id="save-profile-btn">Save Profile</button>
+                </div>
+
+                <!-- Theme Settings -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Appearance</h3>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Theme</label>
+                        <div class="flex gap-md">
+                            <label class="flex items-center gap-sm" style="cursor: pointer;">
+                                <input type="radio" name="theme" value="light" id="theme-light">
+                                <span>☀️ Light</span>
+                            </label>
+                            <label class="flex items-center gap-sm" style="cursor: pointer;">
+                                <input type="radio" name="theme" value="dark" id="theme-dark">
+                                <span>🌙 Dark</span>
+                            </label>
+                        </div>
+                    </div>
+                    <p class="text-secondary" style="font-size: var(--font-size-small);">
+                        Your theme preference is saved automatically.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Instruments Section -->
+            <div class="card mt-lg">
+                <div class="card-header">
+                    <h3 class="card-title">Instruments</h3>
+                    <button class="btn btn-primary btn-sm" id="add-instrument-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        Add Instrument
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table class="table" id="instruments-table">
+                        <thead>
+                            <tr>
+                                <th>Icon</th>
+                                <th>Name</th>
+                                <th>Default</th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="instruments-list">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Categories Section -->
+            <div class="card mt-lg">
+                <div class="card-header">
+                    <h3 class="card-title">Categories</h3>
+                    <button class="btn btn-primary btn-sm" id="add-category-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        Add Category
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table class="table" id="categories-table">
+                        <thead>
+                            <tr>
+                                <th>Icon</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="categories-list">
+                            <!-- Dynamic content -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Data Management -->
+            <div class="card mt-lg">
+                <div class="card-header">
+                    <h3 class="card-title">Data Management</h3>
+                </div>
+                <div class="flex gap-md flex-wrap">
+                    <button class="btn btn-secondary" id="export-data-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Export Data
+                    </button>
+                    <button class="btn btn-secondary" id="import-data-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        Import Data
+                    </button>
+                    <input type="file" id="import-file" accept=".json" style="display: none;">
+                    <button class="btn btn-danger" id="clear-data-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        Clear All Data
+                    </button>
+                </div>
+                <p class="text-secondary mt-md" style="font-size: var(--font-size-small);">
+                    Export your data as a JSON file for backup, or import previously exported data. Clearing data will
+                    remove all sessions, library items, and settings.
+                </p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Change Instrument Modal -->
+    <div class="modal-overlay" id="change-instrument-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Select Instrument</h3>
+                <button class="modal-close" onclick="closeModal('change-instrument-modal')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Instrument</label>
+                    <select class="form-select" id="select-instrument">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('change-instrument-modal')">Cancel</button>
+                <button class="btn btn-primary" id="confirm-instrument">Select</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Instrument Modal -->
+    <div class="modal-overlay" id="instrument-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="instrument-modal-title">Add Instrument</h3>
+                <button class="modal-close" onclick="closeModal('instrument-modal')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-instrument-id">
+                <div class="form-group">
+                    <label class="form-label">Icon (emoji)</label>
+                    <div class="emoji-input-wrapper">
+                        <input type="text" class="form-input" id="instrument-icon" placeholder="🎸" maxlength="2">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-input" id="instrument-name" placeholder="Guitar">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('instrument-modal')">Cancel</button>
+                <button class="btn btn-primary" id="save-instrument-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Category Modal -->
+    <div class="modal-overlay" id="category-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="category-modal-title">Add Category</h3>
+                <button class="modal-close" onclick="closeModal('category-modal')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-category-id">
+                <div class="form-group">
+                    <label class="form-label">Icon (emoji)</label>
+                    <div class="emoji-input-wrapper">
+                        <input type="text" class="form-input" id="category-icon" placeholder="🎵" maxlength="2">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-input" id="category-name" placeholder="Category">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Color</label>
+                    <input type="color" class="form-control form-control-color" id="category-color" value="#4f46e5"
+                        title="Choose category color">
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('category-modal')">Cancel</button>
+                <button class="btn btn-primary" id="save-category-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="delete-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="delete-modal-title">Delete?</h3>
+                <button class="modal-close" onclick="closeModal('delete-modal')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="delete-modal-message">Are you sure? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('delete-modal')">Cancel</button>
+                <button class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear Data Confirmation Modal -->
+    <div class="modal-overlay" id="clear-data-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Clear All Data?</h3>
+                <button class="modal-close" onclick="closeModal('clear-data-modal')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger"><strong>⚠️ Warning:</strong> This will permanently delete all your data
+                    including:</p>
+                <ul style="margin: var(--spacing-md) 0; margin-left: var(--spacing-lg);">
+                    <li>All practice sessions</li>
+                    <li>All library items</li>
+                    <li>All artists</li>
+                    <li>Custom instruments and categories</li>
+                </ul>
+                <p>This action cannot be undone. Consider exporting your data first.</p>
+                <div class="form-group mt-md">
+                    <label class="form-label">Type <strong>Confirm</strong> to delete all data:</label>
+                    <input type="text" class="form-input" id="confirm-clear-text" placeholder="Confirm">
+                    <p class="text-danger mt-sm hidden" id="clear-confirm-error" style="font-size: 0.85rem;">Input must
+                        be exactly "Confirm"</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('clear-data-modal')">Cancel</button>
+                <button class="btn btn-danger" id="confirm-clear-data-btn">Clear All Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Preview Modal -->
+    <div class="modal-overlay" id="import-preview-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="import-modal-title">Import Data Preview</h3>
+                <button class="modal-close" onclick="closeModal('import-preview-modal')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Success State -->
+                <div id="import-preview-content">
+                    <p>The following data will be imported and merged with your current database:</p>
+                    <div class="mt-md p-md bg-secondary rounded" id="import-summary-list"
+                        style="max-height: 200px; overflow-y: auto;">
+                        <!-- Dynamic summary -->
+                    </div>
+                    <p class="mt-md text-secondary" style="font-size: 0.85rem;">
+                        <strong>Note:</strong> Existing items with the same IDs will be updated. No duplicate entries
+                        will
+                        be created for existing data.
+                    </p>
+                </div>
+
+                <!-- Error State -->
+                <div id="import-error-content" class="hidden">
+                    <div
+                        style="border: 1px solid var(--color-danger); border-radius: 16px; padding: 24px; background: rgba(239, 68, 68, 0.05);">
+                        <div
+                            style="display: flex; align-items: center; gap: 16px; color: var(--color-danger); margin-bottom: 12px;">
+                            <div
+                                style="background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 12px; display: flex;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path
+                                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                                    </path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                            </div>
+                            <strong style="font-size: 1.1rem;">Import Failed</strong>
+                        </div>
+                        <p id="import-error-message" style="margin-left: 50px; line-height: 1.5; opacity: 0.9;">The file
+                            format is incorrect.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeModal('import-preview-modal')">Close</button>
+                    <button class="btn btn-primary" id="final-confirm-import-btn">Proceed with Import</button>
+                </div>
+            </div>
+        </div>
+
+        <script src="static/js/data.js"></script>
+        <script src="static/js/timer.js"></script>
+        <script src="static/js/theme.js"></script>
+        <script src="static/js/emoji-picker.js"></script>
+        <script>
+            // ==========================================
+            // Settings Page Logic
+            // ==========================================
+
+            let deleteType = null;
+            let deleteId = null;
+
+            function openModal(modalId) {
+                document.getElementById(modalId)?.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeModal(modalId) {
+                document.getElementById(modalId)?.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            // Update user info display
+            function updateUserDisplay() {
+                const user = FretLogData.getUser();
+                const instrument = FretLogData.getCurrentInstrument();
+                document.getElementById('user-name').textContent = user?.name || 'Musician';
+                document.getElementById('user-instrument').textContent = instrument?.name || 'Guitar';
+                document.getElementById('user-avatar').textContent = (user?.name || 'M').charAt(0).toUpperCase();
+            }
+
+            // Load profile form
+            function loadProfileForm() {
+                const user = FretLogData.getUser();
+                const instruments = FretLogData.getInstruments();
+
+                document.getElementById('profile-name').value = user?.name || '';
+                document.getElementById('profile-email').value = user?.email || '';
+
+
+            }
+
+            // Save profile
+            async function saveProfile() {
+                const user = FretLogData.getUser();
+                user.name = document.getElementById('profile-name').value.trim() || 'Musician';
+                user.email = document.getElementById('profile-email').value.trim();
+
+                await FretLogData.saveUser(user);
+
+                updateUserDisplay();
+                showNotification('Profile saved successfully!');
+            }
+
+            // Theme settings
+            function loadThemeSettings() {
+                const theme = FretLogData.getTheme();
+                document.getElementById('theme-light').checked = theme === 'light';
+                document.getElementById('theme-dark').checked = theme === 'dark';
+            }
+
+            // Render instruments table
+            function renderInstruments() {
+                const instruments = FretLogData.getInstruments();
+                const user = FretLogData.getUser();
+                const tbody = document.getElementById('instruments-list');
+
+                tbody.innerHTML = instruments
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map(i => `
+        <tr>
+          <td style="font-size: 1.5rem;">${i.icon}</td>
+          <td>${i.name}</td>
+          <td>
+            ${user?.defaultInstrumentId === i.id ?
+                            '<span class="badge badge-success">Default</span>' :
+                            `<button class="btn btn-ghost btn-sm" onclick="setDefaultInstrument('${i.id}')">Set Default</button>`
+                        }
+          </td>
+          <td class="text-right">
+            <button class="btn btn-ghost btn-sm" onclick="editInstrument('${i.id}')">Edit</button>
+            <button class="btn btn-ghost btn-sm text-danger" onclick="confirmDeleteInstrument('${i.id}', '${i.name}')">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+            }
+
+            // Render categories table
+            function renderCategories() {
+                const categories = FretLogData.getCategories();
+                const tbody = document.getElementById('categories-list');
+
+                tbody.innerHTML = categories
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map(c => `
+        <tr>
+          <td style="font-size: 1.5rem;">${c.icon}</td>
+          <td>${c.name}</td>
+            <td><span class="badge" style="background-color: ${c.color}1a; color: ${c.color}; border: 1px solid ${c.color}33;">${c.type}</span></td>
+          <td class="text-right">
+            <button class="btn btn-ghost btn-sm" onclick="editCategory('${c.id}')">Edit</button>
+            ${(c.name === 'Song' || c.name === 'Songs') ? '' : `
+              <button class="btn btn-ghost btn-sm text-danger" onclick="confirmDeleteCategory('${c.id}', '${c.name}')">Delete</button>
+            `}
+          </td>
+        </tr>
+      `).join('');
+            }
+
+            // Set default instrument
+            async function setDefaultInstrument(id) {
+                const user = FretLogData.getUser();
+                user.defaultInstrumentId = id;
+                await FretLogData.saveUser(user);
+                loadProfileForm();
+                renderInstruments();
+                updateUserDisplay();
+            }
+
+            // Instrument modal
+            function openInstrumentModal(instrument = null) {
+                document.getElementById('instrument-modal-title').textContent = instrument ? 'Edit Instrument' : 'Add Instrument';
+                document.getElementById('edit-instrument-id').value = instrument?.id || '';
+                document.getElementById('instrument-icon').value = instrument?.icon || '🎸';
+                document.getElementById('instrument-name').value = instrument?.name || '';
+                openModal('instrument-modal');
+            }
+
+            function editInstrument(id) {
+                const instrument = FretLogData.getInstruments().find(i => i.id === id);
+                if (instrument) openInstrumentModal(instrument);
+            }
+
+            async function saveInstrument() {
+                const id = document.getElementById('edit-instrument-id').value;
+                const icon = document.getElementById('instrument-icon').value.trim() || '🎸';
+                const name = document.getElementById('instrument-name').value.trim();
+
+                if (!name) {
+                    alert('Please enter an instrument name');
+                    return;
+                }
+
+                if (id) {
+                    await FretLogData.updateInstrument(id, { icon, name });
+                } else {
+                    await FretLogData.addInstrument({ icon, name });
+                }
+
+                closeModal('instrument-modal');
+                renderInstruments();
+                loadProfileForm();
+            }
+
+            function confirmDeleteInstrument(id, name) {
+                deleteType = 'instrument';
+                deleteId = id;
+                document.getElementById('delete-modal-title').textContent = 'Delete Instrument?';
+                document.getElementById('delete-modal-message').textContent = `Are you sure you want to delete "${name}"?`;
+                openModal('delete-modal');
+            }
+
+            // Category modal
+            function openCategoryModal(category = null) {
+                const isDefault = category && (category.name === 'Song' || category.name === 'Songs');
+                document.getElementById('category-modal-title').textContent = category ? 'Edit Category' : 'Add Category';
+                document.getElementById('edit-category-id').value = category?.id || '';
+
+                const iconInput = document.getElementById('category-icon');
+                const nameInput = document.getElementById('category-name');
+                iconInput.value = category?.icon || '🎵';
+                nameInput.value = category?.name || '';
+
+                // Disable name/icon if it's a default category
+                iconInput.disabled = isDefault;
+                nameInput.disabled = isDefault;
+
+                document.getElementById('category-color').value = category?.color || FretLogData._getRandomColor();
+                openModal('category-modal');
+            }
+
+            function editCategory(id) {
+                const category = FretLogData.getCategories().find(c => c.id === id);
+                if (category) openCategoryModal(category);
+            }
+
+            async function saveCategory() {
+                const id = document.getElementById('edit-category-id').value;
+                const icon = document.getElementById('category-icon').value.trim() || '🎵';
+                const name = document.getElementById('category-name').value.trim();
+                const color = document.getElementById('category-color').value;
+                const type = name; // Match Type to Name per user request (UI simplified)
+
+                if (!name) {
+                    alert('Please enter a category name');
+                    return;
+                }
+
+                if (id) {
+                    await FretLogData.updateCategory(id, { icon, name, type, color });
+                } else {
+                    await FretLogData.addCategory({ icon, name, type, color });
+                }
+
+                closeModal('category-modal');
+                renderCategories();
+            }
+
+            function confirmDeleteCategory(id, name) {
+                if (name === 'Song' || name === 'Songs') return;
+                deleteType = 'category';
+                deleteId = id;
+                document.getElementById('delete-modal-title').textContent = 'Delete Category?';
+                document.getElementById('delete-modal-message').textContent = `Are you sure you want to delete "${name}"? Library items in this category will remain but may appear as "Unknown" category.`;
+                openModal('delete-modal');
+            }
+
+            async function confirmDelete() {
+                if (deleteType === 'instrument') {
+                    await FretLogData.deleteInstrument(deleteId);
+                    renderInstruments();
+                    loadProfileForm();
+                } else if (deleteType === 'category') {
+                    await FretLogData.deleteCategory(deleteId);
+                    renderCategories();
+                }
+                closeModal('delete-modal');
+                deleteType = null;
+                deleteId = null;
+            }
+
+            // Export data
+            async function exportData() {
+                try {
+                    const data = await FretLogData.exportAllData();
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `fretlog-backup-${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    showNotification('Data exported successfully!');
+                } catch (err) {
+                    console.error('Export failed', err);
+                    alert('Failed to export data.');
+                }
+            }
+
+            // Import data
+            let pendingImportData = null;
+
+            function handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const content = e.target.result;
+                        // First check if it looks like JSON
+                        if (!content.trim().startsWith('{') && !content.trim().startsWith('[')) {
+                            throw new Error('Invalid file format. Expected JSON.');
+                        }
+                        pendingImportData = JSON.parse(content);
+                        showImportPreview(pendingImportData);
+                    } catch (err) {
+                        showImportError(err.message || 'Invalid JSON format.');
+                    }
+                };
+                reader.readAsText(file);
+                // Reset input so same file can be selected again if needed
+                event.target.value = '';
+            }
+
+            function showImportError(message) {
+                document.getElementById('import-preview-content').classList.add('hidden');
+                document.getElementById('import-error-content').classList.remove('hidden');
+                document.getElementById('import-error-message').textContent = message;
+                document.getElementById('final-confirm-import-btn').disabled = true;
+                document.getElementById('final-confirm-import-btn').classList.add('hidden'); // Hide proceed button on error
+                openModal('import-preview-modal');
+            }
+
+            function isValidData(data) {
+                if (!data || typeof data !== 'object') return false;
+                // Basic validation: must have at least one of these keys containing an array
+                const validKeys = ['users', 'library_items', 'sessions', 'session_items', 'artists', 'instruments', 'categories', 'settings'];
+                return validKeys.some(key => Array.isArray(data[key]));
+            }
+
+            function showImportPreview(data) {
+                if (!isValidData(data)) {
+                    showImportError('The file does not contain valid FretLog data.');
+                    return;
+                }
+
+                // Reset UI
+                document.getElementById('import-preview-content').classList.remove('hidden');
+                document.getElementById('import-error-content').classList.add('hidden');
+                document.getElementById('final-confirm-import-btn').disabled = false;
+                document.getElementById('final-confirm-import-btn').classList.remove('hidden');
+
+                const summaryList = document.getElementById('import-summary-list');
+                let html = '<ul style="list-style: none;">';
+
+                let count = 0;
+                if (data.users && data.users.length) { html += `<li>👤 Profile: ${data.users[0].name}</li>`; count++; }
+                if (data.library_items && data.library_items.length) { html += `<li>📚 Library Items: ${data.library_items.length}</li>`; count++; }
+                if (data.sessions && data.sessions.length) { html += `<li>⏱️ Sessions: ${data.sessions.length}</li>`; count++; }
+                if (data.artists && data.artists.length) { html += `<li>🎤 Artists: ${data.artists.length}</li>`; count++; }
+                if (data.instruments && data.instruments.length) { html += `<li>🎸 Instruments: ${data.instruments.length}</li>`; count++; }
+                if (data.categories && data.categories.length) { html += `<li>📋 Categories: ${data.categories.length}</li>`; count++; }
+
+                if (count === 0) {
+                    html += '<li><em>No recognizable data found in valid structure.</em></li>';
+                }
+
+                html += '</ul>';
+                summaryList.innerHTML = html;
+                openModal('import-preview-modal');
+            }
+
+            async function proceedWithImport() {
+                if (!pendingImportData) return;
+
+                try {
+                    await FretLogData.importAllData(pendingImportData);
+                    closeModal('import-preview-modal');
+                    showNotification('Data imported successfully!');
+                    setTimeout(() => location.reload(), 1000);
+                } catch (err) {
+                    console.error('Import failed', err);
+                    alert('Failed to import data.');
+                }
+            }
+
+            // Clear all data
+            async function clearAllData() {
+                const confirmText = document.getElementById('confirm-clear-text').value;
+                const err = document.getElementById('clear-confirm-error');
+
+                if (confirmText !== 'Confirm') {
+                    err?.classList.remove('hidden');
+                    return;
+                }
+
+                try {
+                    await FretLogData.resetAllData();
+                    showNotification('All data cleared.');
+                    setTimeout(() => location.reload(), 1000);
+                } catch (err) {
+                    console.error('Clear failed', err);
+                    alert('Failed to clear data.');
+                }
+            }
+
+            // Simple notification
+            function showNotification(message) {
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: var(--color-success);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 3000;
+        animation: slideUp 0.3s ease;
+      `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 3000);
+            }
+
+            // Event Listeners
+            // Event Listeners
+            document.addEventListener('DOMContentLoaded', async () => {
+                async function renderPage() {
+                    updateUserDisplay();
+                    loadProfileForm();
+                    loadThemeSettings();
+                    renderInstruments();
+                    renderCategories();
+                }
+
+                // 1. Kick off init
+                const initPromise = FretLogData.init();
+
+                // 2. Render cached data
+                await renderPage();
+
+                // 3. Wait for fresh data
+                await initPromise;
+
+                // 4. Render fresh data
+                await renderPage();
+
+                // Profile save
+                document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
+
+                // Theme radios
+                document.querySelectorAll('input[name="theme"]').forEach(radio => {
+                    radio.addEventListener('change', (e) => {
+                        FretLogData.setTheme(e.target.value);
+                    });
+                });
+
+                // Instruments
+                document.getElementById('add-instrument-btn').addEventListener('click', () => openInstrumentModal());
+                document.getElementById('save-instrument-btn').addEventListener('click', saveInstrument);
+
+                // Categories
+                document.getElementById('add-category-btn').addEventListener('click', () => openCategoryModal());
+                document.getElementById('save-category-btn').addEventListener('click', saveCategory);
+
+                // Delete confirmation
+                document.getElementById('confirm-delete-btn').addEventListener('click', confirmDelete);
+
+                // Data management
+                document.getElementById('export-data-btn').addEventListener('click', exportData);
+                document.getElementById('import-data-btn').addEventListener('click', () => {
+                    document.getElementById('import-file').click();
+                });
+                document.getElementById('import-file').addEventListener('change', handleFileSelect);
+                document.getElementById('final-confirm-import-btn').addEventListener('click', proceedWithImport);
+                document.getElementById('clear-data-btn').addEventListener('click', () => {
+                    document.getElementById('confirm-clear-text').value = '';
+                    // Ensure error is hidden initially
+                    document.getElementById('clear-confirm-error')?.classList.add('hidden');
+                    openModal('clear-data-modal');
+                });
+
+                document.getElementById('confirm-clear-text').addEventListener('input', (e) => {
+                    const val = e.target.value;
+                    const err = document.getElementById('clear-confirm-error');
+
+                    if (val && val !== 'Confirm') {
+                        err?.classList.remove('hidden');
+                    } else {
+                        err?.classList.add('hidden');
+                    }
+                });
+
+                document.getElementById('confirm-clear-data-btn').addEventListener('click', clearAllData);
+
+                // Initialize emoji pickers
+                if (window.FretLogEmojiPicker) {
+                    window.FretLogEmojiPicker.attach('instrument-icon');
+                    window.FretLogEmojiPicker.attach('category-icon');
+                }
+
+                // Close modals on overlay click
+                document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                    overlay.addEventListener('click', (e) => {
+                        if (e.target === overlay) {
+                            overlay.classList.remove('active');
+                            document.body.style.overflow = '';
+                        }
+                    });
+                });
+            });
+        </script>
+        <script src="static/js/app.js"></script>
+</body>
+
+</html>

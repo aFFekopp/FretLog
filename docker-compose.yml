@@ -1,0 +1,9 @@
+services:
+  web:
+    build: .
+    image: ghcr.io/aFFekopp/fretlog:latest
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./fretlog.db:/app/fretlog.db
+    restart: unless-stopped

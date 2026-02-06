@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# Database
+*.db
+!fretlog.db.example
+*.db-journal
+*.db-wal
+
+# Logs
+*.log
+
+# Personal/IDE
+.vscode/
+.idea/
+.gemini/
+.agent/
+prompt.md
+gemini.md
+instructions.md
+uiguidelines.md
