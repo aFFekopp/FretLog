@@ -16,3 +16,5 @@ pip-delete-this-directory.txt
 server_debug.log
 *.db-journal
 *.db-wal
+data/
+fretlog.db

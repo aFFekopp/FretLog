@@ -739,7 +739,7 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `fretlog-backup-${new Date().toISOString().split('T')[0]}.json`;
+                    a.download = `fretlog-backup-${FretLogData.formatDateKey(new Date())}.json`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);

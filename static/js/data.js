@@ -19,6 +19,16 @@ const FretLogData = {
         _initialized: false
     },
 
+    // Helper to get YYYY-MM-DD in local time
+    formatDateKey(date) {
+        if (!date) return null;
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    },
+
     // Generate unique ID (for client-side before server assigns)
     generateId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -713,7 +723,7 @@ const FretLogData = {
         const sessions = this.getSessions();
 
         sessions.forEach(session => {
-            const dateKey = new Date(session.date).toISOString().split('T')[0];
+            const dateKey = this.formatDateKey(session.date);
             if (!dailyTotals[dateKey]) {
                 dailyTotals[dateKey] = 0;
             }

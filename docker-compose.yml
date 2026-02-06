@@ -1,6 +1,5 @@
 services:
   fretlog:
-
     image: ghcr.io/affekopp/fretlog:main
     container_name: fretlog
     restart: unless-stopped

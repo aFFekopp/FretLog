@@ -14,7 +14,7 @@ app = Flask(__name__, static_folder='static')
 CORS(app)
 app.config['SECRET_KEY'] = 'dev-secret-key-change-this'
 
-DATABASE = os.getenv('DATABASE_PATH', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fretlog.db'))
+DATABASE = os.getenv('DATABASE_PATH', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'fretlog.db'))
 
 def get_db():
     """Get database connection with row factory for dict results"""

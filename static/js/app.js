@@ -148,15 +148,15 @@ function calculateStreak() {
     if (dates.length === 0) return 0;
 
     let streak = 0;
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const today = FretLogData.formatDateKey(new Date());
+    const yesterday = FretLogData.formatDateKey(new Date(Date.now() - 86400000));
 
     // Check if practiced today or yesterday
     if (dailyTotals[today] || dailyTotals[yesterday]) {
         let checkDate = dailyTotals[today] ? new Date() : new Date(Date.now() - 86400000);
 
         while (true) {
-            const dateStr = checkDate.toISOString().split('T')[0];
+            const dateStr = FretLogData.formatDateKey(checkDate);
             if (dailyTotals[dateStr]) {
                 streak++;
                 checkDate = new Date(checkDate.getTime() - 86400000);
