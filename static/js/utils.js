@@ -103,7 +103,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
     const currentPage = document.body.dataset.page;
     if (currentPage) {
-        const navLinks = document.querySelectorAll('.nav-link');
+        const navLinks = document.querySelectorAll('.nav-link, .mobile-nav-link');
         navLinks.forEach(link => {
             if (link.dataset.page === currentPage) {
                 link.classList.add('active');

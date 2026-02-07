@@ -138,6 +138,10 @@
   scrollbar-color: var(--color-border) var(--bg-secondary);
 }
 
+.time-inline {
+  display: none;
+}
+
 /* Dark Mode Form Elements Overrides */
 [data-theme="dark"] ::-webkit-calendar-picker-indicator {
   filter: invert(1);
@@ -396,6 +400,14 @@ a:hover {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   padding: var(--spacing-lg);
+  border: 1px solid var(--color-border);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+/* Specific Card Hover Effects */
+#library-grid .card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
 }
 
 .card-header {
@@ -441,6 +453,7 @@ a:hover {
 
 .btn-primary:hover {
   background: var(--color-primary-hover);
+  color: var(--color-white);
 }
 
 .btn-secondary {
@@ -470,6 +483,7 @@ a:hover {
 
 .btn-success:hover {
   background: #16A34A;
+  color: var(--color-white);
 }
 
 .btn-danger {
@@ -479,6 +493,7 @@ a:hover {
 
 .btn-danger:hover {
   background: #DC2626;
+  color: var(--color-white);
 }
 
 .btn-lg {
@@ -686,6 +701,31 @@ a:hover {
   .grid-2 {
     grid-template-columns: 1fr;
   }
+
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--spacing-sm) !important;
+  }
+
+  /* Compact stat cards further on mobile */
+  .stat-card {
+    padding: var(--spacing-sm) !important;
+  }
+
+  /* Reduce chart height on mobile */
+  .chart-container {
+    height: 180px !important;
+  }
+
+  /* Compact practice list on mobile */
+  .practice-item-meta.hidden-sm {
+    display: none;
+  }
+
+  /* Dashboard mobile grid adjustments */
+  .dashboard-grid {
+    gap: var(--spacing-md) !important;
+  }
 }
 
 /* ==========================================
@@ -808,6 +848,174 @@ a:hover {
   width: 70px;
   text-align: right;
   flex-shrink: 0;
+}
+
+/* ==========================================
+   Mobile Bottom Navigation
+   ========================================== */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--color-border);
+  z-index: 1000;
+  padding: 0 var(--spacing-md);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-nav-list {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 100%;
+  list-style: none;
+}
+
+.mobile-nav-item {
+  flex: 1;
+}
+
+.mobile-nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 0.65rem;
+  font-weight: var(--font-weight-semibold);
+  height: 100%;
+  padding: var(--spacing-xs) 0;
+  transition: all var(--transition-fast);
+}
+
+.mobile-nav-link svg {
+  width: 22px;
+  height: 22px;
+}
+
+.mobile-nav-link.active {
+  color: var(--color-primary);
+}
+
+.mobile-nav-link.active svg {
+  stroke: var(--color-primary);
+}
+
+/* ==========================================
+   Library List View (Desktop & Global)
+   ========================================== */
+.library-list-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  padding-left: calc(var(--spacing-md) + 4px);
+  position: relative;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  margin-bottom: var(--spacing-sm);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.library-list-item:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.library-list-item .item-category {
+  font-size: 0;
+  width: 4px;
+  min-width: 4px !important;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  padding: 0;
+  border-radius: 4px 0 0 4px;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  background: currentColor;
+}
+
+/* Elevate active dropdowns above neighboring cards/items */
+.card:has(.dropdown.active),
+.library-list-item:has(.dropdown.active) {
+  z-index: 50;
+}
+
+.library-list-item .item-category .badge {
+  visibility: hidden;
+}
+
+.library-list-item .item-info {
+  flex: 1;
+  min-width: 0;
+  /* Ensure content doesn't overlap the strip if padding is tight, though padding-left handles it */
+}
+
+/* responsive overrides */
+@media (max-width: 768px) {
+  .main-header {
+    padding: 0 var(--spacing-md);
+  }
+
+  /* Hide desktop nav */
+  .main-nav {
+    display: none;
+  }
+
+  /* Show mobile bottom nav */
+  .mobile-nav {
+    display: block;
+  }
+
+  /* Adjust main content padding for bottom nav */
+  .main-content {
+    padding: var(--spacing-md);
+    padding-bottom: 80px;
+    /* Extra space for bottom nav */
+  }
+
+  .header-left {
+    gap: var(--spacing-md);
+  }
+
+  .logo span {
+    display: none;
+    /* Only icon on mobile */
+  }
+
+  .user-info {
+    display: none;
+    /* Just avatar on mobile */
+  }
+
+  /* Modal full screen on mobile */
+  .modal {
+    max-width: 100%;
+    margin: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    position: fixed;
+    bottom: 0;
+    transform: translateY(100%);
+  }
+
+  .modal-overlay.active .modal {
+    transform: translateY(0);
+  }
+
+  /* Dashboard mobile layout */
+  .dashboard-grid {
+    display: flex;
+    flex-direction: column;
+  }
 }
 
 /* ==========================================
@@ -1309,7 +1517,23 @@ a:hover {
   }
 
   .main-content {
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  .card {
+    padding: var(--spacing-md) !important;
+  }
+
+  .page-header {
+    margin-bottom: var(--spacing-lg) !important;
+  }
+
+  .card-header {
+    margin-bottom: var(--spacing-sm) !important;
   }
 
   .dashboard-grid {
@@ -1326,6 +1550,403 @@ a:hover {
     align-items: flex-start;
     gap: var(--spacing-md);
   }
+
+  .page-header>div:last-child:not(:first-child) {
+    width: 100%;
+    display: flex;
+    gap: var(--spacing-sm);
+  }
+
+  .page-header .btn {
+    flex: 1;
+    white-space: nowrap;
+  }
+
+  /* Library Specific Mobile Optimizations */
+  .category-filter-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    margin-top: 0;
+  }
+
+  .category-filter-group {
+    width: 100%;
+    overflow-x: auto;
+    padding-top: 1px;
+    padding-bottom: 4px;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .category-filter-group::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+  }
+
+  .filters-bar .filter-group {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: var(--spacing-sm);
+  }
+
+  .filter-group .form-select {
+    width: 100% !important;
+  }
+
+  .filters-bar>button,
+  .filters-bar>div:not(.filter-group) {
+    width: 100%;
+  }
+
+  /* Library List View Mobile - High Density */
+  .library-list-item {
+    flex-direction: row;
+    /* Back to row for density */
+    align-items: center;
+    gap: var(--spacing-sm) !important;
+    padding: var(--spacing-sm) !important;
+    padding-left: calc(var(--spacing-sm) + 4px) !important;
+    position: relative;
+  }
+
+  .library-list-item .item-category {
+    font-size: 0;
+    /* Hide text, only show icon or color dot if possible, or make very small */
+    width: 4px;
+    min-width: 4px !important;
+    /* Just a colored strip */
+    height: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: hidden;
+    padding: 0;
+    border-radius: var(--radius-md) 0 0 var(--radius-md);
+    background: currentColor;
+    /* Use inline style color */
+  }
+
+  .library-list-item .item-category .badge {
+    visibility: hidden;
+    /* Hide the actual badge pill */
+  }
+
+  .library-list-item .item-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-left: 0;
+  }
+
+  .library-list-item .item-name {
+    font-size: 0.95rem;
+    margin-bottom: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .library-list-item .item-artist {
+    font-size: 0.75rem;
+    margin-top: -2px;
+  }
+
+  .library-list-item .item-time {
+    font-size: 0.85rem;
+    font-weight: 600;
+    width: auto;
+    min-width: unset;
+    background: var(--bg-secondary);
+    /* Slightly darker/lighter contrast against card bg */
+    color: var(--text-primary);
+    padding: 2px 8px;
+    border-radius: 100px;
+    border: 1px solid var(--color-border);
+    margin-right: 4px;
+  }
+
+  .library-list-item .time-column {
+    margin-left: var(--spacing-md);
+  }
+
+  .library-list-item .item-rating {
+    display: none;
+    /* Hide rating in list view on mobile to save space, or make huge change */
+  }
+
+  .rating-inline {
+    display: flex !important;
+  }
+
+  .time-inline {
+    display: flex !important;
+    margin-left: var(--spacing-sm);
+  }
+
+  .time-column {
+    display: none !important;
+  }
+
+  .library-list-item .item-actions {
+    position: static;
+    gap: 4px;
+  }
+
+  .library-list-item .item-actions .btn {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  /* Compact Card View Mobile */
+  #library-grid .card {
+    padding: var(--spacing-md);
+    margin-bottom: 0;
+    /* Grid gap handles spacing */
+  }
+
+  #library-grid {
+    gap: var(--spacing-md);
+  }
+
+  #library-grid .card h4 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 1.1rem;
+    margin-bottom: 2px !important;
+  }
+
+  #library-grid .card p.text-secondary {
+    margin-bottom: var(--spacing-sm) !important;
+  }
+
+  /* Ensure card grid is 2 columns on mobile */
+  #library-grid.grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* Prevent card expansion from long text */
+    gap: var(--spacing-sm);
+    /* Reduce gap slightly for 2-col */
+  }
+
+  /* Super Compact Library Controls Mobile */
+  .library-controls {
+    flex-direction: row;
+    /* Horizontal layout */
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+  }
+
+  /* Remove the w-full constraint or wrapper behavior from the intermediate container */
+  .library-controls .filters-container {
+    display: contents;
+  }
+
+  /* Reset wrappers */
+  .library-controls .filters-wrapper {
+    display: flex;
+    /* Restore flex container */
+    flex-direction: column;
+    width: 100%;
+    order: 3;
+    gap: 0;
+  }
+
+  /* Hidden content wrapper - when open it will break to new line because we need a flex wrap container */
+  /* Actually, to support "same line" for the toggle and then "break" for content, we need the parent to wrap */
+  .library-controls {
+    flex-wrap: wrap;
+  }
+
+  /* Filter Toggle Button */
+  .mobile-filter-toggle {
+    display: flex !important;
+    margin-bottom: 0;
+    border: 1px solid var(--color-border);
+    width: auto;
+    /* Allow it to be smaller */
+    flex: 1;
+    /* Grow to fill space but allow view toggle to exist */
+    padding: 6px 12px;
+    order: 1;
+  }
+
+  /* View toggle */
+  .library-controls .view-toggle {
+    margin: 0;
+    width: auto;
+    display: flex;
+    justify-content: flex-end;
+    order: 2;
+    /* Keep it to the right */
+  }
+
+  /* Filters Bar Grid Layout - When Expanded */
+  .library-controls .filters-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-sm);
+    width: 100%;
+    margin-bottom: var(--spacing-sm) !important;
+    margin-top: var(--spacing-sm);
+    order: 3;
+    /* Force to next line */
+  }
+
+  /* Make filter groups block level and full width */
+  .library-controls .filter-group {
+    display: block;
+    width: 100%;
+  }
+
+  /* Hide labels to save space */
+  .library-controls .filter-label {
+    display: none;
+  }
+
+  /* Artist filter full width (first child) */
+  .library-controls .filter-group:first-child {
+    grid-column: span 2;
+  }
+
+  /* Style select boxes */
+  .library-controls .form-select {
+    width: 100% !important;
+  }
+
+  /* Clear filters button style match */
+  /* Clear filters button style match */
+  /* Clear filters button style match - Subtle */
+  .library-controls #clear-filters {
+    width: 100%;
+    height: 100%;
+    grid-column: span 2;
+    justify-content: center;
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+    /* Red text to indicate action */
+    border: 1px solid var(--color-border);
+  }
+
+  .library-controls #clear-filters:hover {
+    background-color: transparent;
+    border-color: var(--color-border);
+  }
+
+  /* Hide vertical separator */
+  .library-controls .vertical-separator {
+    display: none;
+  }
+
+  /* Compact Results Footer */
+  .library-controls #results-count {
+    order: 4;
+    /* Force to bottom */
+    width: 100%;
+    text-align: center;
+    font-size: 0.75rem;
+    padding-top: var(--spacing-xs);
+    border-top: 1px solid var(--color-border);
+    display: none;
+    /* Optional: hide count to make it super compact, or keep it. User said "compact box" */
+  }
+
+  /* Ensure the hidden state works with the new flow */
+  .hidden-mobile {
+    display: none !important;
+  }
+
+  /* When hidden, we need to ensure the filters-bar doesn't take space? 
+     The .hidden-mobile class is applied to .filters-wrapper.
+     Inside .filters-wrapper are .filters-bar, separator, results-count.
+     So hiding wrapper hides them all. Perfect. 
+  */
+  /* Compact Active Session Card Mobile */
+  #current-session-panel .card-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--spacing-sm);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--spacing-sm) !important;
+  }
+
+  #current-session-panel .card-header>div:first-child {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  #current-session-panel .card-header>div:last-child {
+    display: flex;
+    gap: var(--spacing-sm);
+    width: 100%;
+  }
+
+  #current-session-panel .btn-sm {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 0.8rem;
+    justify-content: center;
+  }
+
+  #current-session-panel .timer-display {
+    font-size: 2rem;
+    margin-bottom: 0;
+  }
+
+  #current-session-panel .timer-section p {
+    font-size: var(--font-size-caption);
+    margin-top: 0;
+  }
+
+  #current-session-panel h4 {
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  #current-session-panel .practice-list {
+    margin-bottom: var(--spacing-sm);
+  }
+
+  #current-session-panel .mt-lg {
+    margin-top: var(--spacing-md);
+  }
+
+  #current-session-panel textarea {
+    min-height: 60px;
+    font-size: var(--font-size-small);
+  }
+
+  /* Compact Practice Items List */
+  #current-session-panel .practice-item-name {
+    font-size: 0.85rem !important;
+  }
+
+  /* Hide category badges in active session on mobile */
+  #current-session-panel .practice-item .badge {
+    display: none !important;
+  }
+}
+
+/* Fix mobile nav SafeArea for iPhone X+ */
+.mobile-nav {
+  padding-bottom: env(safe-area-inset-bottom);
+  height: calc(64px + env(safe-area-inset-bottom));
+}
+
+.mobile-nav-list {
+  padding-bottom: env(safe-area-inset-bottom);
+  /* Push icons up from safe area */
 }
 
 /* Mobile Navigation */
@@ -1563,4 +2184,17 @@ a:hover {
 
 [data-theme="dark"] .emoji-trigger:hover {
   background: rgba(255, 255, 255, 0.05);
+}
+
+/* Mobile Dashboard Link Button Optimization */
+@media (max-width: 768px) {
+  .dashboard-link-btn {
+    padding: 2px 8px !important;
+    font-size: 0.75rem !important;
+    height: 24px !important;
+    line-height: 1 !important;
+    min-height: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+  }
 }

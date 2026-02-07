@@ -20,6 +20,18 @@
     }
 
     /* Heatmap styles */
+    .heatmap-scroll-container {
+        overflow-x: auto;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .heatmap-months,
+    .heatmap-wrapper {
+        min-width: 800px;
+        /* Ensure 52 weeks remain readable and squares are large enough */
+    }
+
     .heatmap-wrapper {
         display: flex;
         gap: 8px;
@@ -40,6 +52,8 @@
         flex: 1;
         display: flex;
         align-items: center;
+        line-height: 1;
+        /* Fix vertical alignment with small squares */
     }
 
     .heatmap-months {
@@ -112,7 +126,7 @@
 <!-- Summary Cards -->
 <div>
     <h3 class="card-title mb-md">Overview</h3>
-    <div class="grid grid-4 mb-lg">
+    <div class="grid grid-4 stat-grid mb-lg">
         <div class="card stat-card" style="padding: var(--spacing-md);">
             <span class="stat-value" id="total-time">0h</span>
             <span class="stat-label">Total Practice Time</span>
@@ -161,10 +175,12 @@
             </div>
         </div>
         <div class="heatmap-container" id="heatmap-container">
-            <div class="heatmap-months" id="heatmap-months"></div>
-            <div class="heatmap-wrapper">
-                <div class="heatmap-labels" id="heatmap-labels"></div>
-                <div class="heatmap" id="heatmap"></div>
+            <div class="heatmap-scroll-container">
+                <div class="heatmap-months" id="heatmap-months"></div>
+                <div class="heatmap-wrapper">
+                    <div class="heatmap-labels" id="heatmap-labels"></div>
+                    <div class="heatmap" id="heatmap"></div>
+                </div>
             </div>
             <div class="heatmap-legend">
                 <span>Less</span>
@@ -198,7 +214,7 @@
                     <button class="period-btn" data-period="alltime">All Time</button>
                 </div>
             </div>
-            <div class="chart-container" style="height: 250px;">
+            <div class="chart-container">
                 <canvas id="category-chart"></canvas>
             </div>
             <div id="category-list" class="mt-lg"></div>

@@ -91,8 +91,13 @@
     .library-list-item .item-time {
         min-width: 80px;
         text-align: center;
-        color: var(--color-primary);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
         font-weight: 600;
+        font-size: 0.85rem;
+        padding: 4px 12px;
+        border-radius: 100px;
+        border: 1px solid var(--color-border);
     }
 
     .library-list-item .item-rating {
@@ -107,15 +112,19 @@
     /* Card time badge */
     .card-time-badge {
         position: absolute;
-        top: 50%;
-        right: var(--spacing-md);
-        transform: translateY(-50%);
-        background: #1A2254;
-        color: white;
-        font-size: var(--font-size-small);
+        bottom: 12px;
+        right: 12px;
+        top: auto;
+        transform: none;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font-size: 0.75rem;
+        /* Smaller font for compact card */
         font-weight: 600;
-        padding: 4px 10px;
-        border-radius: var(--radius-sm);
+        padding: 2px 8px;
+        /* Compact padding */
+        border-radius: 100px;
+        border: 1px solid var(--color-border);
     }
 
     /* Ensure library cards have position relative for badge positioning */
@@ -179,7 +188,7 @@
 <div class="page-header">
     <div>
         <h1 class="page-title">Library</h1>
-        <p class="text-secondary mt-sm">Manage your songs, techniques, and practice materials</p>
+        <p class="text-secondary mt-sm">Manage your library of songs and practice materials</p>
     </div>
     <div class="flex items-center gap-md">
         <button class="btn btn-secondary mr-sm" id="manage-artists-btn">
@@ -215,48 +224,61 @@
 
 <!-- View Options & Results Count -->
 <div class="card mb-lg" style="padding: var(--spacing-md);">
-    <div class="flex flex-wrap justify-between items-center gap-md">
-        <div class="flex items-center gap-md flex-wrap">
-            <div class="filters-bar" style="margin-bottom: 0;">
-                <div class="filter-group">
-                    <label class="filter-label">Artist</label>
-                    <select class="form-select" id="filter-artist" style="width: auto;">
-                        <option value="">All Artists</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label class="filter-label">Rating</label>
-                    <select class="form-select" id="filter-rating" style="width: auto;">
-                        <option value="">All Ratings</option>
-                        <option value="5">5 Stars</option>
-                        <option value="4">4+ Stars</option>
-                        <option value="3">3+ Stars</option>
-                        <option value="2">2+ Stars</option>
-                        <option value="1">1+ Stars</option>
-                        <option value="0">Unrated</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label class="filter-label">Sort By</label>
-                    <select class="form-select" id="sort-by" style="width: auto;">
-                        <option value="name-asc">Name (A-Z)</option>
-                        <option value="name-desc">Name (Z-A)</option>
-                        <option value="rating-desc">Rating (Highest)</option>
-                        <option value="rating-asc">Rating (Lowest)</option>
-                    </select>
-                </div>
-                <button class="btn btn-ghost btn-sm" id="clear-filters">Clear Filters</button>
-            </div>
+    <div class="library-controls flex flex-wrap justify-between items-center gap-md">
+        <div class="filters-container w-full">
+            <button class="mobile-filter-toggle btn btn-ghost btn-sm w-full flex justify-between items-center hidden"
+                onclick="toggleMobileFilters()">
+                <span id="active-filters-text">Filter & Sort</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    class="transform transition-transform" id="filter-chevron">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
 
-            <div style="height: 24px; width: 1px; background-color: var(--color-border);"></div>
+            <div class="filters-wrapper flex items-center gap-md flex-wrap" id="filters-content">
+                <div class="filters-bar" style="margin-bottom: 0;">
+                    <div class="filter-group">
+                        <label class="filter-label">Artist</label>
+                        <select class="form-select" id="filter-artist" style="width: auto;">
+                            <option value="">All Artists</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Rating</label>
+                        <select class="form-select" id="filter-rating" style="width: auto;">
+                            <option value="">All Ratings</option>
+                            <option value="5">5 Stars</option>
+                            <option value="4">4+ Stars</option>
+                            <option value="3">3+ Stars</option>
+                            <option value="2">2+ Stars</option>
+                            <option value="1">1+ Stars</option>
+                            <option value="0">Unrated</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Sort By</label>
+                        <select class="form-select" id="sort-by" style="width: auto;">
+                            <option value="name-asc">Name (A-Z)</option>
+                            <option value="name-desc">Name (Z-A)</option>
+                            <option value="rating-desc">Rating (Highest)</option>
+                            <option value="rating-asc">Rating (Lowest)</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-ghost btn-sm" id="clear-filters">Clear Filters</button>
+                </div>
 
-            <div class="text-secondary font-medium" id="results-count" style="font-size: 0.85rem;">
-                Loading items...
+                <div class="vertical-separator"
+                    style="height: 24px; width: 1px; background-color: var(--color-border);">
+                </div>
+
+                <div class="text-secondary font-medium" id="results-count" style="font-size: 0.85rem;">
+                    Loading items...
+                </div>
             </div>
         </div>
 
         <div class="view-toggle" id="view-toggle">
-            <button class="view-btn active" data-view="card" title="Card View">
+            <button class="view-btn" data-view="card" title="Card View">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="3" width="7" height="7" rx="1" />
                     <rect x="14" y="3" width="7" height="7" rx="1" />
@@ -265,7 +287,7 @@
                 </svg>
                 Cards
             </button>
-            <button class="view-btn" data-view="list" title="List View">
+            <button class="view-btn active" data-view="list" title="List View">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="8" y1="6" x2="21" y2="6" />
                     <line x1="8" y1="12" x2="21" y2="12" />
@@ -503,7 +525,7 @@
     let filteredItems = [];
     let selectedRating = 0;
     let deletingItemId = null;
-    let currentView = 'card';
+    let currentView = 'list';
     let currentSelectedCategory = "";
 
     function populateFilters() {
@@ -604,31 +626,50 @@
 
             if (currentView === 'card') {
                 return `
-                <div class="card">
-                    <div class="flex justify-between mb-sm">
-                        <span class="badge" style="background:${cat?.color}1a; color:${cat?.color}; border:1px solid ${cat?.color}33;">${cat?.icon} ${cat?.name}</span>
-                        <div class="dropdown">
-                            <button class="btn btn-ghost btn-icon btn-sm" onclick="toggleItemMenu(event, this)"><svg width="16" height="16" stroke="currentColor"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+                <div class="card" style="padding: var(--spacing-md); position: relative; padding-left: calc(var(--spacing-md) + 4px);">
+                    <div class="card-category-strip" style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: ${cat?.color || 'var(--color-primary)'}; border-radius: var(--radius-lg) 0 0 var(--radius-lg);"></div>
+                    <div class="flex justify-between items-start" style="margin-bottom: 4px;">
+                        <h4 style="font-size: 1rem; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px; margin-bottom: 0;">${item.name}</h4>
+                        <div class="dropdown" style="flex-shrink: 0;">
+                            <button class="btn btn-ghost btn-icon btn-sm" style="width: 24px; height: 24px; padding: 0;" onclick="toggleItemMenu(event, this)">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                            </button>
                             <div class="dropdown-menu">
                                 <div class="dropdown-item" onclick="editItem('${item.id}')">Edit</div>
                                 <div class="dropdown-item text-danger" onclick="confirmDelete('${item.id}', '${item.name}')">Delete</div>
                             </div>
                         </div>
                     </div>
-                    <h4 class="mb-sm">${item.name}</h4>
-                    ${art ? `<p class="text-secondary mb-sm">${art.name}</p>` : ''}
-                    <div class="star-rating" onclick="updateRating('${item.id}', event)">${s}</div>
-                    <div class="card-time-badge">⏱ ${formatTimeHuman(t)}</div>
+                    <p class="text-secondary" style="margin-bottom: 8px; font-size: 0.85rem; height: 1.2em;">${art ? art.name : '&nbsp;'}</p>
+                    <div class="star-rating" onclick="updateRating('${item.id}', event)" style="margin-bottom: 0;">${s}</div>
+                    ${t > 0 ? `<div class="card-time-badge" style="top: auto; bottom: var(--spacing-md); transform: none; right: var(--spacing-md);">⏱ ${formatTimeHuman(t)}</div>` : ''}
                 </div>`;
             } else {
                 return `
                 <div class="library-list-item">
-                    <div class="item-category"><span class="badge" style="background:${cat?.color}1a; color:${cat?.color}; border:1px solid ${cat?.color}33;">${cat?.icon} ${cat?.name}</span></div>
-                    <div class="item-info"><div class="item-name">${item.name}</div>${art ? `<div class="item-artist">${art.name}</div>` : ''}</div>
-                    <div class="item-time">⏱ ${formatTimeHuman(t)}</div>
-                    <div class="item-rating star-rating" onclick="updateRating('${item.id}', event)">${s}</div>
-                    <div class="item-actions"><button class="btn btn-ghost btn-sm" onclick="editItem('${item.id}')">Edit</button><button class="btn btn-ghost btn-sm text-danger" onclick="confirmDelete('${item.id}', '${item.name}')">Delete</button></div>
-                </div>`;
+                    <div class="item-category" style="color: ${cat?.color || 'var(--color-primary)'};">
+                        <span class="badge" style="background:${cat?.color}1a; color:${cat?.color}; border:1px solid ${cat?.color}33;">${cat?.icon} ${cat?.name}</span>
+                    </div>
+                    <div class="item-info">
+                        <div class="flex items-center" style="gap: 8px; margin-bottom: 2px; min-width: 0;">
+                            <div class="item-name" style="margin-bottom: 0;">${item.name}</div>
+                            ${art ? `<div class="item-artist text-secondary" style="margin-top: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40%;">${art.name}</div>` : ''}
+                        </div>
+                        <div class="flex items-center gap-sm">
+                            <div class="star-rating rating-inline" onclick="updateRating('${item.id}', event)" style="font-size: 0.85em;">${s}</div>
+                            ${t > 0 ? `<div class="item-time time-inline">⏱ ${formatTimeHuman(t)}</div>` : ''}
+                        </div>
+                    </div>
+                    ${t > 0 ? `<div class="item-time time-column">⏱ ${formatTimeHuman(t)}</div>` : ''}
+        <div class="item-actions">
+            <button class="btn btn-ghost btn-icon btn-sm" onclick="editItem('${item.id}')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
+            </button>
+            <button class="btn btn-ghost btn-icon btn-sm text-danger" onclick="confirmDelete('${item.id}', '${item.name}')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+            </button>
+        </div>
+                </div > `;
             }
         }).join('');
 
@@ -636,7 +677,7 @@
 
         if (filteredItems.length > itemsPerPage) {
             pag.classList.remove('hidden');
-            document.getElementById('pagination-info').textContent = `Showing ${start + 1}-${Math.min(end, filteredItems.length)} of ${filteredItems.length}`;
+            document.getElementById('pagination-info').textContent = `Showing ${start + 1} -${Math.min(end, filteredItems.length)} of ${filteredItems.length} `;
             document.getElementById('prev-page').disabled = currentPage === 1;
             document.getElementById('next-page').disabled = currentPage === totalPages;
         } else pag.classList.add('hidden');
@@ -669,7 +710,7 @@
     function openItemModal(item = null) {
         document.getElementById('item-modal-title').textContent = item ? 'Edit Item' : 'Add Item';
         document.getElementById('edit-item-id').value = item?.id || '';
-        document.getElementById('item-category').innerHTML = FretLogData.getCategories().map(c => `<option value="${c.id}" ${item?.categoryId === c.id ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('');
+        document.getElementById('item-category').innerHTML = FretLogData.getCategories().map(c => `< option value = "${c.id}" ${item?.categoryId === c.id ? 'selected' : ''}> ${c.icon} ${c.name}</option > `).join('');
         populateArtistSelect(item?.artistId);
         document.getElementById('item-name').value = item?.name || '';
         selectedRating = item?.starRating || 0;
@@ -680,7 +721,7 @@
 
     function populateArtistSelect(id = null) {
         document.getElementById('item-artist').innerHTML = '<option value="">Select artist...</option>' +
-            FretLogData.getArtists().sort((a, b) => a.name.localeCompare(b.name)).map(a => `<option value="${a.id}" ${id === a.id ? 'selected' : ''}>${a.name}</option>`).join('');
+            FretLogData.getArtists().sort((a, b) => a.name.localeCompare(b.name)).map(a => `< option value = "${a.id}" ${id === a.id ? 'selected' : ''}> ${a.name}</option > `).join('');
     }
 
     function updateCategoryFields() {
@@ -718,8 +759,8 @@
         const counts = {}; FretLogData.getLibraryItems().forEach(i => { const aid = i.artistId || i.artist_id; if (aid) counts[aid] = (counts[aid] || 0) + 1; });
         list.innerHTML = FretLogData.getArtists().sort((a, b) => a.name.localeCompare(b.name)).map(a => {
             const c = counts[a.id] || 0;
-            return `<div class="flex justify-between p-sm bg-card border rounded"><div><strong>${a.name}</strong><br><small>${c} item${c !== 1 ? 's' : ''}</small></div>
-                <div class="flex gap-xs"><button class="btn btn-ghost btn-sm" onclick="editArtistClick('${a.id}')">Ren</button><button class="btn btn-ghost btn-sm text-danger" onclick="deleteArtistClick('${a.id}')">Del</button></div></div>`;
+            return `< div class="flex justify-between p-sm bg-card border rounded" ><div><strong>${a.name}</strong><br><small>${c} item${c !== 1 ? 's' : ''}</small></div>
+                <div class="flex gap-xs"><button class="btn btn-ghost btn-sm" onclick="editArtistClick('${a.id}')">Ren</button><button class="btn btn-ghost btn-sm text-danger" onclick="deleteArtistClick('${a.id}')">Del</button></div></div >`;
         }).join('');
     }
 
@@ -773,7 +814,24 @@
 
         window.addEventListener('fretlog-session-updated', filterItems);
         window.onInstrumentChange = filterItems;
+
+        // Auto-collapse mobile filters on load
+        if (window.innerWidth <= 768) {
+            document.getElementById('filters-content').classList.add('hidden-mobile');
+        }
     });
+
+    function toggleMobileFilters() {
+        const content = document.getElementById('filters-content');
+        const chevron = document.getElementById('filter-chevron');
+        if (content.classList.contains('hidden-mobile')) {
+            content.classList.remove('hidden-mobile');
+            chevron.style.transform = 'rotate(180deg)';
+        } else {
+            content.classList.add('hidden-mobile');
+            chevron.style.transform = 'rotate(0deg)';
+        }
+    }
 </script>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 {% endblock %}
