@@ -1,0 +1,786 @@
+{% extends "base.html" %}
+
+{% block title %}Sessions{% endblock %}
+{% block description %}View and manage your practice sessions{% endblock %}
+
+{% block styles %}
+<!-- Flatpickr Date Picker -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    /* Flatpickr input styling */
+    .filters-bar .flatpickr-input,
+    .filters-bar input.flatpickr-input {
+        background: transparent !important;
+        border: 1px solid var(--color-border) !important;
+        border-radius: var(--radius-sm);
+        padding: 6px 10px !important;
+        color: var(--text-secondary) !important;
+        font-size: var(--font-size-small);
+        font-weight: var(--font-weight-semibold);
+        cursor: pointer;
+        width: 100px !important;
+        text-align: center;
+    }
+
+    .filters-bar .flatpickr-input:hover {
+        border-color: var(--color-primary) !important;
+        color: var(--text-primary) !important;
+    }
+
+    .filters-bar .flatpickr-input:focus {
+        outline: none;
+        border-color: var(--color-primary) !important;
+        box-shadow: 0 0 0 2px rgba(74, 95, 217, 0.1);
+    }
+
+    .filters-bar .flatpickr-input::placeholder {
+        color: var(--text-secondary);
+        opacity: 0.7;
+    }
+
+    /* Dark theme for Flatpickr calendar */
+    .flatpickr-calendar {
+        background: var(--bg-card, #1E2231);
+        border: 1px solid var(--color-border, #2D3348);
+        border-radius: var(--radius-md, 8px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .flatpickr-calendar.arrowTop:before,
+    .flatpickr-calendar.arrowTop:after {
+        border-bottom-color: var(--bg-card, #1E2231);
+    }
+
+    .flatpickr-months {
+        background: var(--bg-card, #1E2231);
+        border-radius: var(--radius-md, 8px) var(--radius-md, 8px) 0 0;
+    }
+
+    .flatpickr-months .flatpickr-month {
+        background: transparent;
+        color: var(--text-primary, #F5F7FA);
+    }
+
+    .flatpickr-current-month .flatpickr-monthDropdown-months,
+    .flatpickr-current-month input.cur-year {
+        color: var(--text-primary, #F5F7FA);
+        background: transparent;
+    }
+
+    .flatpickr-current-month .flatpickr-monthDropdown-months:hover {
+        background: var(--bg-secondary, #1A1D27);
+    }
+
+    .flatpickr-months .flatpickr-prev-month,
+    .flatpickr-months .flatpickr-next-month {
+        color: var(--text-primary, #F5F7FA);
+        fill: var(--text-primary, #F5F7FA);
+    }
+
+    .flatpickr-months .flatpickr-prev-month:hover,
+    .flatpickr-months .flatpickr-next-month:hover {
+        color: var(--color-primary, #4A5FD9);
+    }
+
+    .flatpickr-months .flatpickr-prev-month:hover svg,
+    .flatpickr-months .flatpickr-next-month:hover svg {
+        fill: var(--color-primary, #4A5FD9);
+    }
+
+    .flatpickr-innerContainer {
+        background: var(--bg-card, #1E2231);
+    }
+
+    .flatpickr-weekdays {
+        background: var(--bg-card, #1E2231);
+    }
+
+    span.flatpickr-weekday {
+        color: var(--text-secondary, #9CA3AF);
+        font-weight: 600;
+    }
+
+    .flatpickr-days {
+        background: var(--bg-card, #1E2231);
+        border: none;
+    }
+
+    .dayContainer {
+        background: var(--bg-card, #1E2231);
+    }
+
+    .flatpickr-day {
+        color: var(--text-primary, #F5F7FA);
+        border-radius: var(--radius-sm, 4px);
+    }
+
+    .flatpickr-day:hover {
+        background: var(--bg-secondary, #1A1D27);
+        border-color: var(--bg-secondary, #1A1D27);
+    }
+
+    .flatpickr-day.today {
+        border-color: var(--color-primary, #4A5FD9);
+    }
+
+    .flatpickr-day.selected,
+    .flatpickr-day.selected:hover {
+        background: var(--color-primary, #4A5FD9);
+        border-color: var(--color-primary, #4A5FD9);
+        color: white;
+    }
+
+    .flatpickr-day.prevMonthDay,
+    .flatpickr-day.nextMonthDay {
+        color: var(--text-secondary, #9CA3AF);
+    }
+
+    .flatpickr-day.disabled,
+    .flatpickr-day.disabled:hover {
+        color: var(--text-secondary, #9CA3AF);
+        opacity: 0.5;
+    }
+
+    /* Compact filter card */
+    .filter-card {
+        padding: var(--spacing-md) !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Sessions</h1>
+        <p class="text-secondary mt-sm">View and manage your practice sessions</p>
+    </div>
+    <button class="btn btn-primary" id="add-session-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Add Session
+    </button>
+</div>
+
+<!-- Filters -->
+<div class="card filter-card mb-lg">
+    <div class="filters-bar">
+        <div class="filter-group">
+            <label class="filter-label">Date Range</label>
+            <input type="text" class="flatpickr-input" id="filter-date-start" placeholder="Start date">
+            <span class="text-secondary">to</span>
+            <input type="text" class="flatpickr-input" id="filter-date-end" placeholder="End date">
+        </div>
+
+        <div class="filter-group">
+            <label class="filter-label">Instrument</label>
+            <select class="form-select" id="filter-instrument" style="width: auto;">
+                <option value="">All Instruments</option>
+            </select>
+        </div>
+
+        <button class="btn btn-ghost btn-sm" id="clear-filters">Clear Filters</button>
+    </div>
+</div>
+
+<!-- Sessions List -->
+<div class="card">
+    <div class="table-container">
+        <table class="table" id="sessions-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Instrument</th>
+                    <th>Items</th>
+                    <th>Total Time</th>
+                    <th>Status</th>
+                    <th>Note</th>
+                    <th class="text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="sessions-list">
+                <!-- Dynamic content -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state hidden" id="no-sessions">
+        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+        </svg>
+        <h4 class="empty-state-title">No sessions found</h4>
+        <p class="empty-state-text">Start practicing or add a manual session to see it here.</p>
+        <a href="/" class="btn btn-primary">Start Practice</a>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex justify-between items-center mt-lg hidden" id="pagination">
+        <span class="text-secondary" id="pagination-info">Showing 1-10 of 50 sessions</span>
+        <div class="flex gap-sm">
+            <button class="btn btn-secondary btn-sm" id="prev-page" disabled>Previous</button>
+            <button class="btn btn-secondary btn-sm" id="next-page">Next</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Session Modal -->
+<div class="modal-overlay" id="session-modal">
+    <div class="modal" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 class="modal-title" id="session-modal-title">Add Session</h3>
+            <button class="modal-close" onclick="closeSessionModal()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="edit-session-id">
+
+            <div class="grid grid-2 gap-md">
+                <div class="form-group">
+                    <label class="form-label">Date & Time</label>
+                    <div class="flex gap-md">
+                        <div style="flex: 2;">
+                            <input type="date" class="form-input" id="session-date">
+                        </div>
+                        <div style="flex: 1;">
+                            <input type="time" class="form-input" id="session-time">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Instrument</label>
+                    <select class="form-select" id="session-instrument">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Session Items -->
+            <div class="form-group">
+                <div class="flex justify-between items-center mb-sm">
+                    <label class="form-label mb-0">Practice Items</label>
+                    <button class="btn btn-ghost btn-sm" id="add-session-item-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        Add Item
+                    </button>
+                </div>
+                <div id="session-items-container">
+                    <!-- Dynamic items -->
+                </div>
+                <div class="empty-state" id="no-session-items" style="padding: 1rem;">
+                    <p class="text-secondary">No items added. Click "Add Item" to add practice items.</p>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Notes</label>
+                <textarea class="form-textarea" id="session-notes-input"
+                    placeholder="Add notes about this session..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer" style="display: block;">
+            <div id="session-error" class="text-danger mb-sm text-right hidden"></div>
+            <div class="flex justify-end gap-sm">
+                <button class="btn btn-secondary" onclick="closeSessionModal()">Cancel</button>
+                <button class="btn btn-primary" id="save-session-btn">Save Session</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Item to Session Modal -->
+<div class="modal-overlay" id="session-item-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Add Practice Item</h3>
+            <button class="modal-close" onclick="closeModal('session-item-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select class="form-select" id="item-category-select">
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Item</label>
+                <select class="form-select" id="item-select">
+                    <option value="">Select an item...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Time Spent (minutes)</label>
+                <input type="number" class="form-input" id="item-time" min="0" value="0">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('session-item-modal')">Cancel</button>
+            <button class="btn btn-primary" id="confirm-add-session-item">Add Item</button>
+        </div>
+    </div>
+</div>
+
+<!-- View Session Modal -->
+<div class="modal-overlay" id="view-session-modal">
+    <div class="modal" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Session Details</h3>
+            <button class="modal-close" onclick="closeModal('view-session-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body" id="view-session-content">
+            <!-- Dynamic content -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('view-session-modal')">Close</button>
+            <button class="btn btn-primary" id="edit-viewed-session">Edit Session</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="delete-session-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Delete Session?</h3>
+            <button class="modal-close" onclick="closeModal('delete-session-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete this session? This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('delete-session-modal')">Cancel</button>
+            <button class="btn btn-danger" id="confirm-delete-session">Delete</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Flatpickr Date Picker -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    // ==========================================
+    // Sessions Page Logic
+    // ==========================================
+
+    let currentPage = 1;
+    const itemsPerPage = 10;
+    let filteredSessions = [];
+    let tempSessionItems = [];
+    let viewingSessionId = null;
+    let deletingSessionId = null;
+
+    // Table Date/Time Formatters
+    function formatTableDate(dateStr) {
+        if (!dateStr) return 'N/A';
+        const d = (typeof dateStr === 'string' && !isNaN(dateStr)) ? new Date(parseInt(dateStr)) : new Date(dateStr);
+        if (isNaN(d.getTime())) return 'Invalid Date';
+        return d.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    }
+
+    function formatTableTime(dateStr) {
+        if (!dateStr) return '--:--';
+        const d = (typeof dateStr === 'string' && !isNaN(dateStr)) ? new Date(parseInt(dateStr)) : new Date(dateStr);
+        if (isNaN(d.getTime())) return 'NaN:NaN';
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return 'N/A';
+        const d = (typeof dateStr === 'string' && !isNaN(dateStr)) ? new Date(parseInt(dateStr)) : new Date(dateStr);
+        if (isNaN(d.getTime())) return 'Invalid Date';
+        return d.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    }
+
+    // Instrument hook for base.html
+    window.onInstrumentChange = () => {
+        filterSessions();
+    };
+
+    // Populate filter dropdowns
+    function populateFilters() {
+        const instruments = FretLogData.getInstruments();
+        const instrumentSelect = document.getElementById('filter-instrument');
+        if (instrumentSelect) {
+            instrumentSelect.innerHTML = '<option value="">All Instruments</option>' +
+                instruments.map(i => `<option value="${i.id}">${i.icon} ${i.name}</option>`).join('');
+        }
+    }
+
+    // Filter and sort sessions
+    function filterSessions() {
+        let sessions = [...FretLogData.getSessions()];
+
+        // Add current session if valid
+        const currentSession = FretLogData.getCurrentSession();
+        if (currentSession) {
+            const activeItem = localStorage.getItem('fretlog_active_item');
+            const startTime = localStorage.getItem('fretlog_start_time');
+            let status = activeItem && startTime ? 'Running' : 'Paused';
+
+            const displaySession = {
+                ...currentSession,
+                status: status,
+                isCurrent: true,
+                totalTimeElementId: 'active-session-total-time'
+            };
+            sessions.unshift(displaySession);
+        }
+
+        // Filters logic
+        const startDate = document.getElementById('filter-date-start').value;
+        const endDate = document.getElementById('filter-date-end').value;
+        if (startDate) sessions = sessions.filter(s => new Date(s.date) >= new Date(startDate));
+        if (endDate) sessions = sessions.filter(s => new Date(s.date) <= new Date(endDate + 'T23:59:59'));
+
+        const instrumentId = document.getElementById('filter-instrument').value;
+        if (instrumentId) sessions = sessions.filter(s => s.instrumentId === instrumentId);
+
+        sessions.sort((a, b) => new Date(b.endTime || b.date) - new Date(a.endTime || a.date));
+
+        filteredSessions = sessions;
+        renderSessions();
+    }
+
+    // Render sessions table
+    function renderSessions() {
+        const tableBody = document.getElementById('sessions-list');
+        const emptyState = document.getElementById('no-sessions');
+        const pagination = document.getElementById('pagination');
+        const table = document.getElementById('sessions-table');
+
+        if (filteredSessions.length === 0) {
+            table.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            pagination.classList.add('hidden');
+            return;
+        }
+
+        table.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+
+        const totalPages = Math.ceil(filteredSessions.length / itemsPerPage);
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const paginated = filteredSessions.slice(start, end);
+
+        const instruments = FretLogData.getInstruments();
+
+        tableBody.innerHTML = paginated.map(session => {
+            const instrumentId = session.instrumentId || session.instrument_id;
+            const instrument = instruments.find(i => i.id === instrumentId);
+            const itemCount = (session.items || []).length;
+            const fullItemList = (session.items || []).map(i => i.name).join(', ');
+
+            return `
+          <tr>
+            <td style="white-space: nowrap;">${formatTableDate(session.endTime || session.date)}</td>
+            <td style="white-space: nowrap;">${formatTableTime(session.endTime || session.date)}</td>
+            <td>${instrument?.icon || '🎸'} ${instrument?.name || 'Unknown'}</td>
+            <td><span class="text-secondary" title="${fullItemList}">${itemCount}</span></td>
+            <td class="text-primary" ${session.totalTimeElementId ? `id="${session.totalTimeElementId}"` : ''}>
+                ${FretLogTimer.formatDuration(session.totalTime || 0)}
+            </td>
+            <td>
+              <span class="badge badge-${session.status === 'completed' ? 'success' :
+                    session.status === 'Running' ? 'primary' :
+                        session.status === 'Paused' ? 'warning' : 'secondary'}">
+                ${session.status || 'completed'}
+              </span>
+            </td>
+            <td>
+              ${session.notes ? `
+                <button class="btn btn-icon btn-ghost btn-sm" onclick="viewSessionNote('${session.id}')" title="View Note">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.7;">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                  </svg>
+                </button>` : ''}
+            </td>
+            <td class="text-right">
+              <div class="flex gap-sm justify-end">
+                ${session.isCurrent ? `<a href="/" class="btn btn-ghost btn-sm text-primary">Dashboard</a>` : `
+                    <button class="btn btn-ghost btn-sm" onclick="viewSession('${session.id}')">View</button>
+                    <button class="btn btn-ghost btn-sm" onclick="editSession('${session.id}')">Edit</button>
+                    <button class="btn btn-ghost btn-sm text-danger" onclick="confirmDeleteSession('${session.id}')">Delete</button>
+                `}
+              </div>
+            </td>
+          </tr>`;
+        }).join('');
+
+        if (filteredSessions.length > itemsPerPage) {
+            pagination.classList.remove('hidden');
+            document.getElementById('pagination-info').textContent = `Showing ${start + 1}-${Math.min(end, filteredSessions.length)} of ${filteredSessions.length}`;
+            document.getElementById('prev-page').disabled = currentPage === 1;
+            document.getElementById('next-page').disabled = currentPage === totalPages;
+        } else {
+            pagination.classList.add('hidden');
+        }
+    }
+
+    // Modals & Actions
+    function viewSession(sessionId) {
+        const session = FretLogData.getSessions().find(s => s.id === sessionId);
+        if (!session) return;
+
+        document.querySelector('#view-session-modal .modal-title').textContent = 'Session Details';
+        viewingSessionId = sessionId;
+
+        const instrumentId = session.instrumentId || session.instrument_id;
+        const instrument = FretLogData.getInstruments().find(i => i.id === instrumentId);
+        const categories = FretLogData.getCategories();
+
+        document.getElementById('view-session-content').innerHTML = `
+        <div class="mb-lg"><p class="text-secondary">Date</p><p>${formatDate(session.date)}</p></div>
+        <div class="mb-lg"><p class="text-secondary">Instrument</p><p>${instrument?.icon || '🎸'} ${instrument?.name || 'Unknown'}</p></div>
+        <div class="mb-lg"><p class="text-secondary">Total Time</p><p>${formatTimeHuman(session.totalTime || 0)}</p></div>
+        <div class="mb-lg"><p class="text-secondary mb-sm">Items Practiced</p>
+          ${session.items?.length ? `
+            <ul class="practice-list">${session.items.map(item => {
+            const catId = item.categoryId || item.category_id;
+            const cat = categories.find(c => c.id === catId);
+            return `<li class="practice-item">
+                    <span class="badge" style="background:${cat?.color}1a; color:${cat?.color}; border:1px solid ${cat?.color}33;">${cat?.icon || '🎵'} ${cat?.name || 'Unknown Category'}</span>
+                    <div class="practice-item-info"><span class="practice-item-name">${item.name}</span></div>
+                    <span class="practice-item-time">${formatTimeHuman(item.timeSpent || 0)}</span>
+                </li>`;
+        }).join('')}</ul>` : '<p class="text-secondary">No items recorded</p>'}
+        </div>
+        ${session.notes ? `<div><p class="text-secondary mb-sm">Notes</p><p>${session.notes}</p></div>` : ''}`;
+        openModal('view-session-modal');
+    }
+
+    function viewSessionNote(sessionId) {
+        const session = FretLogData.getSessions().find(s => s.id === sessionId);
+        if (!session) return;
+        viewingSessionId = sessionId;
+        document.querySelector('#view-session-modal .modal-title').textContent = 'Session Note';
+        document.getElementById('view-session-content').innerHTML = `
+            <div class="mb-lg">
+                <p class="text-secondary mb-sm">Date: ${formatTableDate(session.endTime || session.date)}</p>
+                <div style="padding:var(--spacing-lg); background:rgba(255,255,255,0.03); border-radius:var(--radius-md); border-left:4px solid var(--color-primary);">
+                    <p style="white-space:pre-wrap; margin:0;">${session.notes || 'No notes.'}</p>
+                </div>
+            </div>`;
+        openModal('view-session-modal');
+    }
+
+    function openSessionModal(session = null) {
+        const isEdit = !!session;
+        document.getElementById('session-modal-title').textContent = isEdit ? 'Edit Session' : 'Add Session';
+        document.getElementById('edit-session-id').value = session?.id || '';
+        document.getElementById('session-error').classList.add('hidden');
+
+        const dateObj = session ? new Date(session.endTime || session.date) : new Date();
+        const timeStr = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+
+        if (document.getElementById('session-date')._flatpickr) {
+            document.getElementById('session-date')._flatpickr.setDate(dateObj);
+        }
+        if (document.getElementById('session-time')._flatpickr) {
+            document.getElementById('session-time')._flatpickr.setDate(timeStr, true);
+        }
+
+        const instruments = FretLogData.getInstruments();
+        const user = FretLogData.getUser();
+        const preselectedId = session?.instrumentId || session?.instrument_id || document.getElementById('filter-instrument')?.value || user?.defaultInstrumentId;
+
+        document.getElementById('session-instrument').innerHTML = instruments.map(i =>
+            `<option value="${i.id}" ${preselectedId === i.id ? 'selected' : ''}>${i.icon} ${i.name}</option>`
+        ).join('');
+
+        tempSessionItems = session?.items ? [...session.items] : [];
+        renderTempSessionItems();
+
+        const notesInput = document.getElementById('session-notes-input');
+        notesInput.value = session?.notes || '';
+        autoResizeTextarea(notesInput);
+        openModal('session-modal');
+    }
+
+    function closeSessionModal() {
+        closeModal('session-modal');
+        tempSessionItems = [];
+    }
+
+    function renderTempSessionItems() {
+        const container = document.getElementById('session-items-container');
+        const emptyState = document.getElementById('no-session-items');
+        if (tempSessionItems.length === 0) {
+            container.innerHTML = '';
+            emptyState.classList.remove('hidden');
+            return;
+        }
+        emptyState.classList.add('hidden');
+        const categories = FretLogData.getCategories();
+        container.innerHTML = tempSessionItems.map((item, index) => {
+            const cat = categories.find(c => c.id === item.categoryId);
+            return `
+          <div class="practice-item" style="background:var(--bg-secondary); border-radius:var(--radius-md); margin-bottom:var(--spacing-sm);">
+            <div class="practice-item-info"><span class="practice-item-name">${cat?.icon || '🎵'} ${item.name}</span></div>
+            <div class="flex items-center gap-sm">
+              <input type="number" class="form-input" style="width:70px;" value="${Math.floor((item.timeSpent || 0) / 60000)}" 
+                     onchange="tempSessionItems[${index}].timeSpent = this.value * 60000" min="0">
+              <span class="text-secondary">min</span>
+              <button class="btn btn-ghost btn-sm text-danger" onclick="tempSessionItems.splice(${index}, 1); renderTempSessionItems();">×</button>
+            </div>
+          </div>`;
+        }).join('');
+    }
+
+    function openSessionAddItemModal() {
+        const categories = FretLogData.getCategories();
+        document.getElementById('item-category-select').innerHTML = categories.map(c =>
+            `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+        updateSessionItemOptions();
+        document.getElementById('item-time').value = '0';
+        openModal('session-item-modal');
+    }
+
+    function updateSessionItemOptions() {
+        const categoryId = document.getElementById('item-category-select').value;
+        let items = FretLogData.getLibraryItemsByCategory(categoryId);
+        const existingIds = new Set(tempSessionItems.map(i => i.libraryItemId || i.library_item_id));
+        items = items.filter(i => !existingIds.has(i.id));
+
+        document.getElementById('item-select').innerHTML = items.length ?
+            '<option value="">Select...</option>' + items.map(i => `<option value="${i.id}">${i.name}</option>`).join('') :
+            '<option value="">No items</option>';
+    }
+
+    async function saveSession() {
+        const sessionId = document.getElementById('edit-session-id').value;
+        const date = document.getElementById('session-date').value;
+        const time = document.getElementById('session-time').value;
+        if (!date || !time) return;
+        if (tempSessionItems.length === 0) return;
+
+        const sessionDate = new Date(date).toISOString();
+        const endTime = new Date(`${date}T${time}:00`).toISOString();
+        const totalTime = tempSessionItems.reduce((sum, item) => sum + (item.timeSpent || 0), 0);
+
+        const data = {
+            date: sessionDate, endTime, instrumentId: document.getElementById('session-instrument').value,
+            items: tempSessionItems, notes: document.getElementById('session-notes-input').value,
+            totalTime, status: 'completed'
+        };
+
+        if (sessionId) await FretLogData.updateSession(sessionId, data);
+        else await FretLogData.addSession(data);
+
+        closeSessionModal();
+        filterSessions();
+    }
+
+    function editSession(sessionId) {
+        const session = FretLogData.getSessions().find(s => s.id === sessionId);
+        if (session) openSessionModal(session);
+    }
+
+    function confirmDeleteSession(sessionId) {
+        deletingSessionId = sessionId;
+        openModal('delete-session-modal');
+    }
+
+    async function deleteSession() {
+        if (deletingSessionId) {
+            await FretLogData.deleteSession(deletingSessionId);
+            deletingSessionId = null;
+            closeModal('delete-session-modal');
+            filterSessions();
+        }
+    }
+
+    function autoResizeTextarea(textarea) {
+        if (!textarea) return;
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+    }
+
+    // Lifecycle
+    document.addEventListener('DOMContentLoaded', async () => {
+        const initPromise = FretLogData.init();
+        const render = () => { populateFilters(); filterSessions(); };
+
+        await render();
+        await initPromise;
+        await render();
+
+        flatpickr('#filter-date-start', { altInput: true, altFormat: 'M j, Y', onChange: filterSessions });
+        flatpickr('#filter-date-end', { altInput: true, altFormat: 'M j, Y', onChange: filterSessions });
+        flatpickr('#session-date', { altInput: true, altFormat: 'M j, Y' });
+        flatpickr('#session-time', { enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true });
+
+        document.getElementById('filter-instrument').addEventListener('change', filterSessions);
+        document.getElementById('clear-filters').addEventListener('click', () => {
+            document.getElementById('filter-date-start')._flatpickr?.clear();
+            document.getElementById('filter-date-end')._flatpickr?.clear();
+            document.getElementById('filter-instrument').value = '';
+            filterSessions();
+        });
+
+        document.getElementById('add-session-btn').addEventListener('click', () => openSessionModal());
+        document.getElementById('add-session-item-btn').addEventListener('click', openSessionAddItemModal);
+        document.getElementById('item-category-select').addEventListener('change', updateSessionItemOptions);
+        document.getElementById('confirm-add-session-item').addEventListener('click', () => {
+            const itemId = document.getElementById('item-select').value;
+            const time = parseInt(document.getElementById('item-time').value) || 0;
+            const libItem = FretLogData.getLibraryItems().find(i => i.id === itemId);
+            if (libItem) {
+                tempSessionItems.push({ id: FretLogData.generateId(), libraryItemId: itemId, name: libItem.name, categoryId: libItem.categoryId, timeSpent: time * 60000 });
+                renderTempSessionItems();
+                closeModal('session-item-modal');
+            }
+        });
+        document.getElementById('save-session-btn').addEventListener('click', saveSession);
+        document.getElementById('confirm-delete-session').addEventListener('click', deleteSession);
+        document.getElementById('edit-viewed-session').addEventListener('click', () => {
+            closeModal('view-session-modal');
+            editSession(viewingSessionId);
+        });
+
+        document.getElementById('session-notes-input').addEventListener('input', (e) => autoResizeTextarea(e.target));
+
+        window.addEventListener('fretlog-session-updated', filterSessions);
+    });
+</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}

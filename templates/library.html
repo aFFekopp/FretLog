@@ -1,0 +1,779 @@
+{% extends "base.html" %}
+
+{% block title %}Library{% endblock %}
+{% block description %}Manage your practice library of songs, techniques, and more{% endblock %}
+
+{% block styles %}
+<style>
+    /* View toggle styles */
+    .view-toggle {
+        display: flex;
+        gap: 4px;
+        background: var(--bg-input);
+        border-radius: var(--radius-sm);
+        padding: 4px;
+    }
+
+    .view-toggle .view-btn {
+        padding: 6px 12px;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-radius: var(--radius-xs);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: var(--font-size-caption);
+        transition: all 0.2s ease;
+    }
+
+    .view-toggle .view-btn:hover {
+        color: var(--text-primary);
+    }
+
+    .view-toggle .view-btn.active {
+        background: var(--color-primary);
+        color: white;
+    }
+
+    .view-toggle .view-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Compact filter card */
+    .filter-card {
+        padding: var(--spacing-md) !important;
+    }
+
+    /* List view styles */
+    .library-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .library-list-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        padding: var(--spacing-md);
+        background: var(--bg-card);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--color-border);
+    }
+
+    .library-list-item:hover {
+        border-color: var(--color-primary);
+    }
+
+    .library-list-item .item-category {
+        min-width: 120px;
+    }
+
+    .library-list-item .item-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .library-list-item .item-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+    }
+
+    .library-list-item .item-artist {
+        font-size: var(--font-size-caption);
+        color: var(--text-secondary);
+    }
+
+    .library-list-item .item-time {
+        min-width: 80px;
+        text-align: center;
+        color: var(--color-primary);
+        font-weight: 600;
+    }
+
+    .library-list-item .item-rating {
+        min-width: 100px;
+    }
+
+    .library-list-item .item-actions {
+        display: flex;
+        gap: var(--spacing-xs);
+    }
+
+    /* Card time badge */
+    .card-time-badge {
+        position: absolute;
+        top: 50%;
+        right: var(--spacing-md);
+        transform: translateY(-50%);
+        background: #1A2254;
+        color: white;
+        font-size: var(--font-size-small);
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: var(--radius-sm);
+    }
+
+    /* Ensure library cards have position relative for badge positioning */
+    #library-grid .card {
+        position: relative;
+    }
+
+    /* Category Filter Buttons */
+    .category-filter-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 8px;
+    }
+
+    .category-filter-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 14px;
+        border-radius: 100px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 0.82rem;
+        font-weight: 600;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        white-space: nowrap;
+    }
+
+    .category-filter-btn .category-icon {
+        font-size: 0.95rem;
+        line-height: 1;
+    }
+
+    .category-filter-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateY(-1px);
+    }
+
+    .category-filter-btn.active {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        transform: translateY(-1px);
+    }
+
+    /* "All" button specific active state if not colored by category */
+    .category-filter-btn[data-id=""] {
+        border-color: var(--color-border);
+    }
+
+    .category-filter-btn[data-id=""].active {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Library</h1>
+        <p class="text-secondary mt-sm">Manage your songs, techniques, and practice materials</p>
+    </div>
+    <div class="flex items-center gap-md">
+        <button class="btn btn-secondary mr-sm" id="manage-artists-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                style="margin-right: 6px;">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            Manage Artists
+        </button>
+        <button class="btn btn-primary" id="add-item-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Add Item
+        </button>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card filter-card mb-lg">
+    <div class="category-filter-row">
+        <label class="filter-label">Filter by Category</label>
+        <div id="category-filter-buttons" class="category-filter-group">
+            <!-- Buttons will be injected here -->
+        </div>
+        <input type="hidden" id="filter-category" value="">
+    </div>
+</div>
+
+<!-- View Options & Results Count -->
+<div class="card mb-lg" style="padding: var(--spacing-md);">
+    <div class="flex flex-wrap justify-between items-center gap-md">
+        <div class="flex items-center gap-md flex-wrap">
+            <div class="filters-bar" style="margin-bottom: 0;">
+                <div class="filter-group">
+                    <label class="filter-label">Artist</label>
+                    <select class="form-select" id="filter-artist" style="width: auto;">
+                        <option value="">All Artists</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Rating</label>
+                    <select class="form-select" id="filter-rating" style="width: auto;">
+                        <option value="">All Ratings</option>
+                        <option value="5">5 Stars</option>
+                        <option value="4">4+ Stars</option>
+                        <option value="3">3+ Stars</option>
+                        <option value="2">2+ Stars</option>
+                        <option value="1">1+ Stars</option>
+                        <option value="0">Unrated</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Sort By</label>
+                    <select class="form-select" id="sort-by" style="width: auto;">
+                        <option value="name-asc">Name (A-Z)</option>
+                        <option value="name-desc">Name (Z-A)</option>
+                        <option value="rating-desc">Rating (Highest)</option>
+                        <option value="rating-asc">Rating (Lowest)</option>
+                    </select>
+                </div>
+                <button class="btn btn-ghost btn-sm" id="clear-filters">Clear Filters</button>
+            </div>
+
+            <div style="height: 24px; width: 1px; background-color: var(--color-border);"></div>
+
+            <div class="text-secondary font-medium" id="results-count" style="font-size: 0.85rem;">
+                Loading items...
+            </div>
+        </div>
+
+        <div class="view-toggle" id="view-toggle">
+            <button class="view-btn active" data-view="card" title="Card View">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+                Cards
+            </button>
+            <button class="view-btn" data-view="list" title="List View">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="8" y1="6" x2="21" y2="6" />
+                    <line x1="8" y1="12" x2="21" y2="12" />
+                    <line x1="8" y1="18" x2="21" y2="18" />
+                    <line x1="3" y1="6" x2="3.01" y2="6" />
+                    <line x1="3" y1="12" x2="3.01" y2="12" />
+                    <line x1="3" y1="18" x2="3.01" y2="18" />
+                </svg>
+                List
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Library Grid/List -->
+<div class="grid grid-3" id="library-grid"></div>
+<div class="library-list hidden" id="library-list"></div>
+
+<!-- Empty State -->
+<div class="card empty-state hidden" id="no-items">
+    <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+    <h4 class="empty-state-title">Your library is empty</h4>
+    <p class="empty-state-text">Add songs, techniques, and other practice materials to get started.</p>
+    <button class="btn btn-primary" onclick="openItemModal()">Add Your First Item</button>
+</div>
+
+<!-- Pagination -->
+<div class="flex justify-between items-center mt-lg hidden" id="pagination">
+    <span class="text-secondary" id="pagination-info">Showing 1-12 of 50 items</span>
+    <div class="flex gap-sm">
+        <button class="btn btn-secondary btn-sm" id="prev-page" disabled>Previous</button>
+        <button class="btn btn-secondary btn-sm" id="next-page">Next</button>
+    </div>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="item-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="item-modal-title">Add Library Item</h3>
+            <button class="modal-close" onclick="closeModal('item-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="edit-item-id">
+            <div class="form-group">
+                <label class="form-label">Category *</label>
+                <select class="form-select" id="item-category" onchange="updateCategoryFields()"></select>
+            </div>
+            <div class="form-group" id="artist-group">
+                <label class="form-label">Artist</label>
+                <div class="flex gap-sm">
+                    <select class="form-select" id="item-artist" style="flex: 1;">
+                        <option value="">Select artist...</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="openArtistModal()">+ New</button>
+                </div>
+            </div>
+            <div class="form-group" id="name-group">
+                <label class="form-label" id="name-label">Name *</label>
+                <input type="text" class="form-input" id="item-name" placeholder="Enter name...">
+                <span class="form-error hidden" id="name-error">Name is required</span>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Progress Rating</label>
+                <div class="star-rating" id="item-rating">
+                    <span class="star" data-rating="1">★</span>
+                    <span class="star" data-rating="2">★</span>
+                    <span class="star" data-rating="3">★</span>
+                    <span class="star" data-rating="4">★</span>
+                    <span class="star" data-rating="5">★</span>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('item-modal')">Cancel</button>
+            <button class="btn btn-primary" id="save-item-btn">Save Item</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Artist -->
+<div class="modal-overlay" id="artist-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Add New Artist</h3>
+            <button class="modal-close" onclick="closeModal('artist-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Artist Name *</label>
+                <input type="text" class="form-input" id="new-artist-name" placeholder="Enter artist name...">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('artist-modal')">Cancel</button>
+            <button class="btn btn-primary" id="save-artist-btn">Add Artist</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Delete -->
+<div class="modal-overlay" id="delete-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Delete Item?</h3>
+            <button class="modal-close" onclick="closeModal('delete-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete "<span id="delete-item-name"></span>"?</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('delete-modal')">Cancel</button>
+            <button class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Manage Artists -->
+<div class="modal-overlay" id="manage-artists-modal">
+    <div class="modal" style="max-width: 800px; width: 95%;">
+        <div class="modal-header">
+            <h3 class="modal-title">Manage Artists</h3>
+            <button class="modal-close" onclick="closeModal('manage-artists-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="flex gap-sm mb-md">
+                <input type="text" class="form-input" id="manage-artist-input" placeholder="New artist name...">
+                <button class="btn btn-primary" id="manage-artist-add-btn">Add</button>
+            </div>
+            <div id="manage-artists-list"
+                style="max-height: 50vh; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px;">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('manage-artists-modal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Edit Artist -->
+<div class="modal-overlay" id="edit-artist-modal">
+    <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">Renaming Artist</h3>
+            <button class="modal-close" onclick="closeModal('edit-artist-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">New Name *</label>
+                <input type="text" class="form-input" id="edit-artist-input">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('edit-artist-modal')">Cancel</button>
+            <button class="btn btn-primary" id="save-artist-rename-btn">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Delete Artist Confirmation -->
+<div class="modal-overlay" id="delete-artist-confirmation-modal">
+    <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Delete Artist?</h3>
+            <button class="modal-close" onclick="closeModal('delete-artist-confirmation-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p>Delete <strong id="delete-artist-name"></strong>?</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('delete-artist-confirmation-modal')">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDeleteArtist()">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Alert -->
+<div class="modal-overlay" id="alert-modal">
+    <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3 class="modal-title" id="alert-title">Notice</h3>
+            <button class="modal-close" onclick="closeModal('alert-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p id="alert-message"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="closeModal('alert-modal')">OK</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentPage = 1;
+    const itemsPerPage = 12;
+    let filteredItems = [];
+    let selectedRating = 0;
+    let deletingItemId = null;
+    let currentView = 'card';
+    let currentSelectedCategory = "";
+
+    function populateFilters() {
+        const categories = FretLogData.getCategories();
+        const artists = FretLogData.getArtists().sort((a, b) => a.name.localeCompare(b.name));
+        const categoryContainer = document.getElementById('category-filter-buttons');
+        const allActive = currentSelectedCategory === "";
+
+        categoryContainer.innerHTML = `
+            <button class="category-filter-btn ${allActive ? 'active' : ''}" onclick="handleCategoryClick('')"
+                    style="${allActive ? 'background:var(--color-primary); color:white;' : ''}">All</button>
+        ` + categories.map(c => {
+            const color = c.color || 'var(--color-primary)';
+            const isActive = currentSelectedCategory === c.id;
+            return `
+                <button class="category-filter-btn ${isActive ? 'active' : ''}" 
+                        onclick="handleCategoryClick('${c.id}')"
+                        style="${isActive ? `border-color:${color}; color:${color}; background:${color}10;` : `border-color:${color}40; color:${color}a0;`}">
+                    <span>${c.icon}</span> <span>${c.name}</span>
+                </button>`;
+        }).join('');
+
+        document.getElementById('filter-artist').innerHTML = '<option value="">All Artists</option>' +
+            artists.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+    }
+
+    function handleCategoryClick(id) {
+        currentSelectedCategory = id;
+        document.getElementById('filter-category').value = id;
+        populateFilters();
+        filterItems();
+    }
+
+    function filterItems(keepPage = false) {
+        let items = FretLogData.getLibraryItems();
+        const catId = document.getElementById('filter-category').value;
+        if (catId) items = items.filter(i => (i.categoryId || i.category_id) === catId);
+
+        const artId = document.getElementById('filter-artist').value;
+        if (artId) items = items.filter(i => (i.artistId || i.artist_id) === artId);
+
+        const ratingVal = document.getElementById('filter-rating').value;
+        if (ratingVal !== "") {
+            const r = parseInt(ratingVal);
+            items = r === 0 ? items.filter(i => !i.starRating) : items.filter(i => (i.starRating || 0) >= r);
+        }
+
+        const sortBy = document.getElementById('sort-by').value;
+        items.sort((a, b) => {
+            if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
+            if (sortBy === 'name-desc') return b.name.localeCompare(a.name);
+            if (sortBy === 'rating-desc') return (b.starRating || 0) - (a.starRating || 0);
+            if (sortBy === 'rating-asc') return (a.starRating || 0) - (b.starRating || 0);
+            return 0;
+        });
+
+        filteredItems = items;
+        if (!keepPage) currentPage = 1;
+        document.getElementById('results-count').textContent = `${items.length} item${items.length !== 1 ? 's' : ''} found`;
+        renderItems();
+    }
+
+    function renderItems() {
+        const grid = document.getElementById('library-grid');
+        const list = document.getElementById('library-list');
+        const empty = document.getElementById('no-items');
+        const pag = document.getElementById('pagination');
+
+        if (filteredItems.length === 0) {
+            grid.classList.add('hidden'); list.classList.add('hidden');
+            empty.classList.remove('hidden'); pag.classList.add('hidden');
+            return;
+        }
+
+        empty.classList.add('hidden');
+        if (currentView === 'card') { grid.classList.remove('hidden'); list.classList.add('hidden'); }
+        else { grid.classList.add('hidden'); list.classList.remove('hidden'); }
+
+        const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const paginated = filteredItems.slice(start, end);
+
+        const categories = FretLogData.getCategories();
+        const artists = FretLogData.getArtists();
+        const times = getItemTotalTimes();
+
+        const renderStars = (r) => {
+            let s = ''; for (let i = 1; i <= 5; i++) s += `<span class="star ${i <= r ? 'filled' : ''}" data-rating="${i}">★</span>`;
+            return s;
+        };
+
+        const listHtml = paginated.map(item => {
+            const cat = categories.find(c => c.id === (item.categoryId || item.category_id));
+            const art = artists.find(a => a.id === (item.artistId || item.artist_id));
+            const s = renderStars(item.starRating || 0);
+            const t = times[item.id] || 0;
+
+            if (currentView === 'card') {
+                return `
+                <div class="card">
+                    <div class="flex justify-between mb-sm">
+                        <span class="badge" style="background:${cat?.color}1a; color:${cat?.color}; border:1px solid ${cat?.color}33;">${cat?.icon} ${cat?.name}</span>
+                        <div class="dropdown">
+                            <button class="btn btn-ghost btn-icon btn-sm" onclick="toggleItemMenu(event, this)"><svg width="16" height="16" stroke="currentColor"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+                            <div class="dropdown-menu">
+                                <div class="dropdown-item" onclick="editItem('${item.id}')">Edit</div>
+                                <div class="dropdown-item text-danger" onclick="confirmDelete('${item.id}', '${item.name}')">Delete</div>
+                            </div>
+                        </div>
+                    </div>
+                    <h4 class="mb-sm">${item.name}</h4>
+                    ${art ? `<p class="text-secondary mb-sm">${art.name}</p>` : ''}
+                    <div class="star-rating" onclick="updateRating('${item.id}', event)">${s}</div>
+                    <div class="card-time-badge">⏱ ${formatTimeHuman(t)}</div>
+                </div>`;
+            } else {
+                return `
+                <div class="library-list-item">
+                    <div class="item-category"><span class="badge" style="background:${cat?.color}1a; color:${cat?.color}; border:1px solid ${cat?.color}33;">${cat?.icon} ${cat?.name}</span></div>
+                    <div class="item-info"><div class="item-name">${item.name}</div>${art ? `<div class="item-artist">${art.name}</div>` : ''}</div>
+                    <div class="item-time">⏱ ${formatTimeHuman(t)}</div>
+                    <div class="item-rating star-rating" onclick="updateRating('${item.id}', event)">${s}</div>
+                    <div class="item-actions"><button class="btn btn-ghost btn-sm" onclick="editItem('${item.id}')">Edit</button><button class="btn btn-ghost btn-sm text-danger" onclick="confirmDelete('${item.id}', '${item.name}')">Delete</button></div>
+                </div>`;
+            }
+        }).join('');
+
+        if (currentView === 'card') grid.innerHTML = listHtml; else list.innerHTML = listHtml;
+
+        if (filteredItems.length > itemsPerPage) {
+            pag.classList.remove('hidden');
+            document.getElementById('pagination-info').textContent = `Showing ${start + 1}-${Math.min(end, filteredItems.length)} of ${filteredItems.length}`;
+            document.getElementById('prev-page').disabled = currentPage === 1;
+            document.getElementById('next-page').disabled = currentPage === totalPages;
+        } else pag.classList.add('hidden');
+    }
+
+    function getItemTotalTimes() {
+        const sess = FretLogData.getSessions();
+        const t = {};
+        sess.forEach(s => (s.items || []).forEach(i => { if (i.libraryItemId) t[i.libraryItemId] = (t[i.libraryItemId] || 0) + (i.timeSpent || 0); }));
+        return t;
+    }
+
+    function toggleItemMenu(e, btn) {
+        e.stopPropagation();
+        const menu = btn.nextElementSibling;
+        document.querySelectorAll('.dropdown-menu.active').forEach(m => { if (m !== menu) m.classList.remove('active'); });
+        menu.parentElement.classList.toggle('active');
+    }
+
+    async function updateRating(id, e) {
+        const star = e.target.closest('.star'); if (!star) return;
+        let r = parseInt(star.dataset.rating);
+        const item = FretLogData.getLibraryItems().find(i => i.id === id);
+        // Toggle off if clicking the same rating
+        if (r === (item.starRating || 0)) r = 0;
+        await FretLogData.updateLibraryItem(id, { starRating: r });
+        filterItems(true);
+    }
+
+    function openItemModal(item = null) {
+        document.getElementById('item-modal-title').textContent = item ? 'Edit Item' : 'Add Item';
+        document.getElementById('edit-item-id').value = item?.id || '';
+        document.getElementById('item-category').innerHTML = FretLogData.getCategories().map(c => `<option value="${c.id}" ${item?.categoryId === c.id ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('');
+        populateArtistSelect(item?.artistId);
+        document.getElementById('item-name').value = item?.name || '';
+        selectedRating = item?.starRating || 0;
+        updateModalStars();
+        updateCategoryFields();
+        openModal('item-modal');
+    }
+
+    function populateArtistSelect(id = null) {
+        document.getElementById('item-artist').innerHTML = '<option value="">Select artist...</option>' +
+            FretLogData.getArtists().sort((a, b) => a.name.localeCompare(b.name)).map(a => `<option value="${a.id}" ${id === a.id ? 'selected' : ''}>${a.name}</option>`).join('');
+    }
+
+    function updateCategoryFields() {
+        const cat = FretLogData.getCategories().find(c => c.id === document.getElementById('item-category').value);
+        const isSong = cat?.type === 'Song';
+        document.getElementById('artist-group').classList.toggle('hidden', !isSong);
+        document.getElementById('name-label').textContent = isSong ? 'Song Title *' : 'Name *';
+    }
+
+    function updateModalStars() {
+        document.querySelectorAll('#item-rating .star').forEach((s, i) => s.classList.toggle('filled', i < selectedRating));
+    }
+
+    async function saveItem() {
+        const id = document.getElementById('edit-item-id').value;
+        const name = document.getElementById('item-name').value.trim();
+        if (!name) return;
+        const data = { categoryId: document.getElementById('item-category').value, artistId: document.getElementById('item-artist').value || null, name, starRating: selectedRating };
+        if (id) await FretLogData.updateLibraryItem(id, data); else await FretLogData.addLibraryItem(data);
+        closeModal('item-modal'); filterItems(!!id);
+    }
+
+    function editItem(id) { const item = FretLogData.getLibraryItems().find(i => i.id === id); if (item) openItemModal(item); }
+    function confirmDelete(id, name) { deletingItemId = id; document.getElementById('delete-item-name').textContent = name; openModal('delete-modal'); }
+    async function deleteItem() { if (deletingItemId) { await FretLogData.deleteLibraryItem(deletingItemId); closeModal('delete-modal'); filterItems(); } }
+
+    function openArtistModal() { document.getElementById('new-artist-name').value = ''; openModal('artist-modal'); }
+    async function saveArtist() {
+        const name = document.getElementById('new-artist-name').value.trim(); if (!name) return;
+        const art = await FretLogData.addArtist(name); closeModal('artist-modal'); populateArtistSelect(art.id); document.getElementById('item-artist').value = art.id;
+    }
+
+    function renderManageArtistsList() {
+        const list = document.getElementById('manage-artists-list');
+        const counts = {}; FretLogData.getLibraryItems().forEach(i => { const aid = i.artistId || i.artist_id; if (aid) counts[aid] = (counts[aid] || 0) + 1; });
+        list.innerHTML = FretLogData.getArtists().sort((a, b) => a.name.localeCompare(b.name)).map(a => {
+            const c = counts[a.id] || 0;
+            return `<div class="flex justify-between p-sm bg-card border rounded"><div><strong>${a.name}</strong><br><small>${c} item${c !== 1 ? 's' : ''}</small></div>
+                <div class="flex gap-xs"><button class="btn btn-ghost btn-sm" onclick="editArtistClick('${a.id}')">Ren</button><button class="btn btn-ghost btn-sm text-danger" onclick="deleteArtistClick('${a.id}')">Del</button></div></div>`;
+        }).join('');
+    }
+
+    let editArtId = null, delArtId = null;
+    window.editArtistClick = (id) => { editArtId = id; document.getElementById('edit-artist-input').value = FretLogData.getArtists().find(a => a.id == id).name; openModal('edit-artist-modal'); };
+    window.deleteArtistClick = (id) => {
+        if (FretLogData.getLibraryItems().some(i => (i.artistId || i.artist_id) == id)) { alert("Artist in use!"); return; }
+        delArtId = id; document.getElementById('delete-artist-name').textContent = FretLogData.getArtists().find(a => a.id == id).name; openModal('delete-artist-confirmation-modal');
+    };
+    window.confirmDeleteArtist = async () => { if (delArtId) { await FretLogData.deleteArtist(delArtId); closeModal('delete-artist-confirmation-modal'); renderManageArtistsList(); populateFilters(); } };
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const init = FretLogData.init();
+        const render = () => { populateFilters(); filterItems(); };
+        await render(); await init; await render();
+
+        document.getElementById('filter-artist').addEventListener('change', filterItems);
+        document.getElementById('filter-rating').addEventListener('change', filterItems);
+        document.getElementById('sort-by').addEventListener('change', filterItems);
+        document.getElementById('clear-filters').addEventListener('click', () => {
+            currentSelectedCategory = ""; document.getElementById('filter-category').value = "";
+            document.getElementById('filter-artist').value = ""; document.getElementById('filter-rating').value = "";
+            document.getElementById('sort-by').value = "name-asc"; populateFilters(); filterItems();
+        });
+
+        document.querySelectorAll('#view-toggle .view-btn').forEach(b => b.addEventListener('click', () => {
+            document.querySelectorAll('#view-toggle .view-btn').forEach(x => x.classList.remove('active')); b.classList.add('active');
+            currentView = b.dataset.view; renderItems();
+        }));
+
+        document.getElementById('prev-page').addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderItems(); } });
+        document.getElementById('next-page').addEventListener('click', () => { if (currentPage < Math.ceil(filteredItems.length / itemsPerPage)) { currentPage++; renderItems(); } });
+
+        document.getElementById('add-item-btn').addEventListener('click', () => openItemModal());
+        document.getElementById('save-item-btn').addEventListener('click', saveItem);
+        document.getElementById('save-artist-btn').addEventListener('click', saveArtist);
+        document.getElementById('confirm-delete-btn').addEventListener('click', deleteItem);
+        document.getElementById('manage-artists-btn').addEventListener('click', () => { renderManageArtistsList(); openModal('manage-artists-modal'); });
+        document.getElementById('manage-artist-add-btn').addEventListener('click', async () => {
+            const n = document.getElementById('manage-artist-input').value.trim();
+            if (n) { await FretLogData.addArtist(n); document.getElementById('manage-artist-input').value = ''; renderManageArtistsList(); populateFilters(); }
+        });
+        document.getElementById('save-artist-rename-btn').addEventListener('click', async () => {
+            const n = document.getElementById('edit-artist-input').value.trim();
+            if (n && editArtId) { await FretLogData.updateArtist(editArtId, n); closeModal('edit-artist-modal'); renderManageArtistsList(); populateFilters(); filterItems(); }
+        });
+
+        document.querySelectorAll('#item-rating .star').forEach(s => s.addEventListener('click', () => {
+            const r = parseInt(s.dataset.rating); selectedRating = (r === 1 && selectedRating === 1) ? 0 : r; updateModalStars();
+        }));
+
+        window.addEventListener('fretlog-session-updated', filterItems);
+        window.onInstrumentChange = filterItems;
+    });
+</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}

@@ -66,10 +66,28 @@ const FretLogData = {
     _normalizeSession(s) {
         if (!s) return null;
         const norm = { ...s };
+
+        // Normalize property names (database snake_case to frontend camelCase)
         if (s.instrument_id) norm.instrumentId = s.instrument_id;
         if (s.total_time !== undefined) norm.totalTime = s.total_time;
         if (s.start_time) norm.startTime = s.start_time;
         if (s.end_time) norm.endTime = s.end_time;
+
+        // Ensure date/time fields are handled as Numbers if they are numeric strings
+        // This prevents JS new Date() from failing on string timestamps
+        if (norm.date && !isNaN(norm.date) && typeof norm.date === 'string') {
+            norm.date = parseInt(norm.date);
+        }
+        if (norm.startTime && !isNaN(norm.startTime) && typeof norm.startTime === 'string') {
+            norm.startTime = parseInt(norm.startTime);
+        }
+        if (norm.endTime && !isNaN(norm.endTime) && typeof norm.endTime === 'string') {
+            norm.endTime = parseInt(norm.endTime);
+        }
+        if (norm.totalTime !== undefined && !isNaN(norm.totalTime) && typeof norm.totalTime === 'string') {
+            norm.totalTime = parseInt(norm.totalTime);
+        }
+
         if (s.items) {
             norm.items = s.items.map(i => {
                 const item = { ...i };
@@ -77,6 +95,14 @@ const FretLogData = {
                 if (i.category_id) item.categoryId = i.category_id;
                 if (i.time_spent !== undefined) item.timeSpent = i.time_spent;
                 if (i.started_at) item.startedAt = i.started_at;
+
+                // Normalize item times
+                if (item.timeSpent !== undefined && !isNaN(item.timeSpent) && typeof item.timeSpent === 'string') {
+                    item.timeSpent = parseInt(item.timeSpent);
+                }
+                if (item.startedAt && !isNaN(item.startedAt) && typeof item.startedAt === 'string') {
+                    item.startedAt = parseInt(item.startedAt);
+                }
                 return item;
             });
         }
@@ -103,7 +129,7 @@ const FretLogData = {
     _initPromise: null,
     async init() {
         // Initial load from local cache for instant UI
-        this._loadCache();
+        this.loadFromCache();
 
         // Return existing promise if init is already in progress or complete
         if (this._initPromise) {
@@ -115,30 +141,39 @@ const FretLogData = {
         return this._initPromise;
     },
 
+    // Public method to load cache (idempotent-ish)
+    loadFromCache() {
+        if (!this._cache._initialized) {
+            this._loadCache();
+        }
+    },
+
     // Load data from localStorage synchronously
     _loadCache() {
-        try {
-            const keys = [
-                'user', 'categories', 'instruments', 'artists',
-                'library', 'sessions', 'currentSession', 'theme'
-            ];
+        const keys = [
+            'user', 'categories', 'instruments', 'artists',
+            'library', 'sessions', 'currentSession', 'theme'
+        ];
 
-            keys.forEach(key => {
+        keys.forEach(key => {
+            try {
                 const cached = localStorage.getItem(`fretlog_${key}_cache`);
                 if (cached) {
                     this._cache[key] = JSON.parse(cached);
                 }
-            });
+            } catch (e) {
+                console.warn(`Failed to load local cache for ${key}`, e);
+            }
+        });
 
-            // Apply theme immediately
+        // Apply theme immediately
+        try {
             if (this._cache.theme) {
                 document.documentElement.setAttribute('data-theme', this._cache.theme);
             }
+        } catch (e) { console.warn('Failed to apply cached theme', e); }
 
-            console.log('FretLogData loaded from local cache');
-        } catch (e) {
-            console.warn('Failed to load local cache', e);
-        }
+        console.log('FretLogData loaded from local cache');
     },
 
     // Helper to update specific cache key
@@ -158,11 +193,10 @@ const FretLogData = {
             if (!instruments || instruments.length === 0) {
                 console.log('Seeding default instruments...');
                 const defaults = [
-                    { icon: '🎸', name: 'Guitar' },
-                    { icon: '🎹', name: 'Piano' },
-                    { icon: '🥁', name: 'Drums' },
-                    { icon: '🎻', name: 'Violin' },
-                    { icon: '🎤', name: 'Vocals' }
+                    { id: 'inst-bass', icon: '🎸', name: 'Bass' },
+                    { id: 'inst-drums', icon: '🥁', name: 'Drums' },
+                    { id: 'inst-guitar', icon: '🎸', name: 'Guitar' },
+                    { id: 'inst-piano', icon: '🎹', name: 'Piano' }
                 ];
                 instruments = [];
                 for (const inst of defaults) {
@@ -174,11 +208,11 @@ const FretLogData = {
             if (!categories || categories.length === 0) {
                 console.log('Seeding default categories...');
                 const defaults = [
-                    { icon: '🎵', name: 'Songs', type: 'Song', color: '#4f46e5' },
-                    { icon: '🎼', name: 'Theory', type: 'Theory', color: '#0ea5e9' },
-                    { icon: '💪', name: 'Technique', type: 'Technique', color: '#10b981' },
-                    { icon: '👂', name: 'Ear Training', type: 'Ear Training', color: '#f59e0b' },
-                    { icon: '🎨', name: 'Improvisation', type: 'Other', color: '#8b5cf6' }
+                    { id: 'cat-ear-training', icon: '👂', name: 'Ear Training', type: 'Ear Training', color: '#f59e0b' },
+                    { id: 'cat-lesson', icon: '🎓', name: 'Lesson', type: 'Lesson', color: '#3b82f6' },
+                    { id: 'cat-song', icon: '🎵', name: 'Song', type: 'Song', color: '#4f46e5' },
+                    { id: 'cat-technique', icon: '💪', name: 'Technique', type: 'Technique', color: '#10b981' },
+                    { id: 'cat-theory', icon: '📚', name: 'Theory', type: 'Theory', color: '#8b5cf6' }
                 ];
                 categories = [];
                 for (const cat of defaults) {
@@ -311,7 +345,8 @@ const FretLogData = {
             method: 'POST',
             body: instrument
         });
-        this._cache.instruments.push(result);
+        const saved = result;
+        this._cache.instruments.push(saved);
         this._updateCache('instruments', this._cache.instruments);
         return this._cache.instruments;
     },
@@ -505,9 +540,19 @@ const FretLogData = {
     },
 
     async startNewSession(instrumentId) {
+        let selectedInstId = instrumentId || this.getUser()?.defaultInstrumentId;
+
+        // Fallback to first instrument if none selected
+        if (!selectedInstId) {
+            const instruments = this.getInstruments();
+            if (instruments.length > 0) {
+                selectedInstId = instruments[0].id;
+            }
+        }
+
         const session = {
             id: this.generateId(),
-            instrumentId: instrumentId || this.getUser()?.defaultInstrumentId,
+            instrumentId: selectedInstId,
             status: 'running',
             date: new Date().toISOString(),
             startTime: Date.now(),
@@ -827,6 +872,17 @@ const FretLogData = {
         ];
         keys.forEach(k => localStorage.removeItem(`fretlog_${k}_cache`));
         return true;
+    },
+
+    getData(type) {
+        switch (type) {
+            case 'library': return this.getLibraryItems();
+            case 'sessions': return this.getSessions();
+            case 'artists': return this.getArtists();
+            case 'instruments': return this.getInstruments();
+            case 'categories': return this.getCategories();
+            default: return [];
+        }
     }
 };
 

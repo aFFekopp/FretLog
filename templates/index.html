@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Page Header with Start Session -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="text-secondary mt-sm">Track your music practice progress</p>
+    </div>
+    <div class="flex gap-md items-center">
+        <button class="btn btn-primary btn-lg" id="start-session-btn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            Start Practice
+        </button>
+    </div>
+</div>
+
+<!-- Current Session Panel (hidden by default) -->
+<div class="card mb-lg hidden" id="current-session-panel">
+    <div class="card-header">
+        <div class="flex items-center gap-md">
+            <span class="session-active-indicator">Session Active</span>
+            <span class="badge badge-primary" id="session-instrument-badge">Guitar</span>
+        </div>
+        <div class="flex gap-sm">
+            <button class="btn btn-secondary btn-sm" id="add-item-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add Item
+            </button>
+            <button class="btn btn-success btn-sm" id="end-session-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="6" y="6" width="12" height="12" />
+                </svg>
+                End Session
+            </button>
+        </div>
+    </div>
+
+    <!-- Timer Display -->
+    <div class="timer-section">
+        <div class="timer-display" id="session-timer">00:00:00</div>
+        <p class="text-center text-secondary mt-sm" id="timer-label">Total Session Time</p>
+    </div>
+
+    <!-- Session Items List -->
+    <div class="mt-lg">
+        <h4 class="mb-md">Practice Items</h4>
+        <ul class="practice-list" id="session-items-list">
+            <!-- Items will be added here dynamically -->
+        </ul>
+        <div class="empty-state hidden" id="session-no-items">
+            <p class="text-secondary">No items added yet. Click "Add Item" to start practicing!</p>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="mt-lg">
+        <label class="form-label" for="session-notes">Session Notes</label>
+        <textarea class="form-textarea" id="session-notes"
+            placeholder="Add notes about your practice session..."></textarea>
+    </div>
+</div>
+
+<!-- Dashboard Grid -->
+<div class="dashboard-grid">
+    <!-- Left Column -->
+    <div class="flex flex-col gap-lg">
+        <!-- Motivational Quote Card -->
+        <div class="card hidden" id="motivation-card">
+            <div class="card-header" style="border-bottom: none;">
+                <h3 class="card-title">💪 Time to Practice!</h3>
+            </div>
+            <p id="motivation-quote" style="font-style: italic; line-height: 1.5; margin: var(--spacing-sm) 0 0 0;"></p>
+        </div>
+
+        <!-- Recent Practice -->
+        <div>
+            <div class="flex justify-between items-center mb-md">
+                <h3 class="card-title">Recent Practice</h3>
+                <a href="/sessions" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+            <div class="card">
+                <ul class="practice-list" id="recent-practice-list">
+                    <!-- Dynamic content -->
+                </ul>
+                <div class="empty-state hidden" id="no-recent-practice">
+                    <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <h4 class="empty-state-title">No practice sessions yet</h4>
+                    <p class="empty-state-text">Start your first practice session to see your progress here.</p>
+                    <button class="btn btn-primary" onclick="startSession()">Start Practice</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Practice Summary Table -->
+        <div>
+            <h3 class="card-title mb-md">Practice Summary</h3>
+            <div class="card">
+                <div
+                    style="display: flex; justify-content: space-between; padding: var(--spacing-sm) var(--spacing-md); background: var(--bg-secondary); border-radius: var(--radius-md); margin-bottom: var(--spacing-md);">
+                    <span class="text-secondary"
+                        style="font-weight: var(--font-weight-semibold); font-size: var(--font-size-small);">Period</span>
+                    <span class="text-secondary text-right"
+                        style="font-weight: var(--font-weight-semibold); font-size: var(--font-size-small); width: 120px;">Time
+                        Practiced</span>
+                </div>
+                <ul class="practice-list">
+                    <li class="practice-item">
+                        <span class="practice-item-name">Today</span>
+                        <span class="practice-item-time text-right" style="width: 120px;" id="summary-today">0h
+                            0m</span>
+                    </li>
+                    <li class="practice-item">
+                        <span class="practice-item-name">This Week</span>
+                        <span class="practice-item-time text-right" style="width: 120px;" id="summary-week">0h 0m</span>
+                    </li>
+                    <li class="practice-item">
+                        <span class="practice-item-name">This Month</span>
+                        <span class="practice-item-time text-right" style="width: 120px;" id="summary-month">0h
+                            0m</span>
+                    </li>
+                    <li class="practice-item">
+                        <span class="practice-item-name">This Year</span>
+                        <span class="practice-item-time text-right" style="width: 120px;" id="summary-year">0h 0m</span>
+                    </li>
+                    <li class="practice-item">
+                        <span class="practice-item-name" style="font-weight: var(--font-weight-bold);">All Time</span>
+                        <span class="practice-item-time text-right"
+                            style="width: 120px; font-weight: var(--font-weight-bold);" id="summary-alltime">0h
+                            0m</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="flex flex-col gap-lg">
+        <!-- Quick Stats -->
+        <div>
+            <h3 class="card-title mb-md">Quick Stats</h3>
+            <div class="grid grid-2 gap-md">
+                <div class="card" style="padding: var(--spacing-md);">
+                    <span class="stat-value" id="total-sessions">0</span>
+                    <span class="stat-label">Total Sessions</span>
+                </div>
+                <div class="card" style="padding: var(--spacing-md);">
+                    <span class="stat-value" id="library-items">0</span>
+                    <span class="stat-label">Library Items</span>
+                </div>
+                <div class="card" style="padding: var(--spacing-md);">
+                    <span class="stat-value" id="avg-session">0m</span>
+                    <span class="stat-label">Avg Session</span>
+                </div>
+                <div class="card" style="padding: var(--spacing-md);">
+                    <span class="stat-value" id="streak-days">0</span>
+                    <span class="stat-label">Day Streak</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Most Practiced -->
+        <div>
+            <h3 class="card-title mb-md">Most Practiced</h3>
+            <div class="card">
+                <div class="card-header">
+                    <div class="period-selector" id="most-practiced-period">
+                        <button class="period-btn" data-period="week">Week</button>
+                        <button class="period-btn active" data-period="month">Month</button>
+                        <button class="period-btn" data-period="year">Year</button>
+                        <button class="period-btn" data-period="alltime">All Time</button>
+                    </div>
+                </div>
+                <ul class="practice-list" id="most-practiced-list">
+                    <!-- Dynamic content -->
+                </ul>
+                <div class="empty-state hidden" id="no-most-practiced">
+                    <p class="text-secondary">No practice data for this period.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals specific to Dashboard -->
+<!-- Add Item Modal -->
+<div class="modal-overlay" id="add-item-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Add Practice Item</h3>
+            <button class="modal-close" onclick="closeModal('add-item-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select class="form-select" id="add-item-category">
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+            <div class="form-group hidden" id="add-item-artist-group">
+                <label class="form-label">Artist</label>
+                <select class="form-select" id="add-item-artist">
+                    <option value="">All Artists</option>
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Item</label>
+                <select class="form-select" id="add-item-select">
+                    <option value="">Select an item...</option>
+                </select>
+            </div>
+            <div class="form-group hidden" id="add-new-item-group">
+                <a href="/library" class="btn btn-ghost btn-sm">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Add New Item to Library
+                </a>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('add-item-modal')">Cancel</button>
+            <button class="btn btn-primary" id="confirm-add-item">Add to Session</button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm End Session Modal -->
+<div class="modal-overlay" id="end-session-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">End Session?</h3>
+            <button class="modal-close" onclick="closeModal('end-session-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to end this practice session?</p>
+            <div class="mt-md">
+                <p class="text-secondary">Total time: <strong id="end-session-time"
+                        class="text-primary">00:00:00</strong></p>
+                <p class="text-secondary">Items practiced: <strong id="end-session-items"
+                        class="text-primary">0</strong></p>
+            </div>
+            <div class="mt-lg">
+                <label class="form-label" for="end-session-notes">Final Session Notes</label>
+                <textarea class="form-textarea" id="end-session-notes" placeholder="Any final thoughts?"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('end-session-modal')">Continue Practice</button>
+            <button class="btn btn-success" id="confirm-end-session">End Session</button>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Empty Session Modal -->
+<div class="modal-overlay" id="cancel-session-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Cancel Session?</h3>
+            <button class="modal-close" onclick="closeModal('cancel-session-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p>This session has no practice items.</p>
+            <p class="text-secondary mt-sm">Do you want to cancel this session without saving?</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('cancel-session-modal')">Continue Practice</button>
+            <button class="btn btn-danger" id="confirm-cancel-session">Cancel Session</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+    // Page level initialization if needed
+    document.addEventListener('DOMContentLoaded', () => {
+        // initDashboard is handled by fretlog-data-ready in app.js
+    });
+</script>
+{% endblock %}

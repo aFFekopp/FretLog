@@ -1,0 +1,435 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+{% block description %}Manage your profile, instruments, and categories{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Settings</h1>
+        <p class="text-secondary mt-sm">Manage your profile, instruments, and preferences</p>
+    </div>
+</div>
+
+<div class="grid grid-2 gap-lg">
+    <!-- Profile Settings -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Profile</h3>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Name</label>
+            <input type="text" class="form-input" id="profile-name" placeholder="Your name">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Email (optional)</label>
+            <input type="email" class="form-input" id="profile-email" placeholder="your@email.com">
+        </div>
+        <button class="btn btn-primary" id="save-profile-btn">Save Profile</button>
+    </div>
+
+    <!-- Theme Settings -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Appearance</h3>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Theme</label>
+            <div class="flex gap-md">
+                <label class="flex items-center gap-sm" style="cursor: pointer;">
+                    <input type="radio" name="theme-radio" value="light" id="theme-light">
+                    <span>☀️ Light</span>
+                </label>
+                <label class="flex items-center gap-sm" style="cursor: pointer;">
+                    <input type="radio" name="theme-radio" value="dark" id="theme-dark">
+                    <span>🌙 Dark</span>
+                </label>
+            </div>
+        </div>
+        <p class="text-secondary" style="font-size: var(--font-size-small);">
+            Your theme preference is saved automatically and synced across devices.
+        </p>
+    </div>
+</div>
+
+<!-- Instruments Section -->
+<div class="card mt-lg">
+    <div class="card-header">
+        <h3 class="card-title">Instruments</h3>
+        <button class="btn btn-primary btn-sm" id="add-instrument-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Add Instrument
+        </button>
+    </div>
+    <div class="table-container">
+        <table class="table" id="instruments-table">
+            <thead>
+                <tr>
+                    <th>Icon</th>
+                    <th>Name</th>
+                    <th>Default</th>
+                    <th class="text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="instruments-list"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Categories Section -->
+<div class="card mt-lg">
+    <div class="card-header">
+        <h3 class="card-title">Categories</h3>
+        <button class="btn btn-primary btn-sm" id="add-category-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Add Category
+        </button>
+    </div>
+    <div class="table-container">
+        <table class="table" id="categories-table">
+            <thead>
+                <tr>
+                    <th>Icon</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th class="text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="categories-list"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Data Management -->
+<div class="card mt-lg">
+    <div class="card-header">
+        <h3 class="card-title">Data Management</h3>
+    </div>
+    <div class="flex gap-md flex-wrap">
+        <button class="btn btn-secondary" id="export-data-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export Data
+        </button>
+        <button class="btn btn-secondary" id="import-data-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            Import Data
+        </button>
+        <input type="file" id="import-file" accept=".json" style="display: none;">
+        <button class="btn btn-danger" id="clear-data-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+            Clear All Data
+        </button>
+    </div>
+    <p class="text-secondary mt-md" style="font-size: var(--font-size-small);">
+        Export your data as a JSON file for backup. Clearing data permanently removes all sessions and library items.
+    </p>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="instrument-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="instrument-modal-title">Add Instrument</h3>
+            <button class="modal-close" onclick="closeModal('instrument-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="edit-instrument-id">
+            <div class="form-group">
+                <label class="form-label">Icon (emoji)</label>
+                <input type="text" class="form-input" id="instrument-icon" placeholder="🎸" maxlength="2">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Name</label>
+                <input type="text" class="form-input" id="instrument-name" placeholder="Guitar">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('instrument-modal')">Cancel</button>
+            <button class="btn btn-primary" id="save-instrument-btn">Save</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="category-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="category-modal-title">Add Category</h3>
+            <button class="modal-close" onclick="closeModal('category-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="edit-category-id">
+            <div class="form-group">
+                <label class="form-label">Icon (emoji)</label>
+                <input type="text" class="form-input" id="category-icon" placeholder="🎵" maxlength="2">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Name</label>
+                <input type="text" class="form-input" id="category-name" placeholder="Category">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Color</label>
+                <input type="color" class="form-control form-control-color" id="category-color" value="#4f46e5">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('category-modal')">Cancel</button>
+            <button class="btn btn-primary" id="save-category-btn">Save</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="delete-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="delete-modal-title">Delete?</h3>
+            <button class="modal-close" onclick="closeModal('delete-modal')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p id="delete-modal-message"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('delete-modal')">Cancel</button>
+            <button class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="clear-data-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Clear All Data?</h3>
+        </div>
+        <div class="modal-body">
+            <p class="text-danger">⚠️ Warning: This will permanently delete all your data.</p>
+            <div class="form-group mt-md">
+                <label class="form-label">Type <strong>Confirm</strong> to delete:</label>
+                <input type="text" class="form-input" id="confirm-clear-text" placeholder="Confirm">
+                <p class="text-danger mt-sm hidden" id="clear-confirm-error">Input must be "Confirm"</p>
+            </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary"
+                onclick="closeModal('clear-data-modal')">Cancel</button><button class="btn btn-danger"
+                id="confirm-clear-data-btn">Clear All Data</button></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="import-preview-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Import Data Preview</h3>
+        </div>
+        <div class="modal-body">
+            <div id="import-preview-content">
+                <p class="mb-md">The following data will be imported and merged with your current database:</p>
+                <div id="import-summary-list" class="mt-md"></div>
+            </div>
+            <div id="import-error-content" class="hidden">
+                <p id="import-error-message" class="text-danger"></p>
+            </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary"
+                onclick="closeModal('import-preview-modal')">Close</button><button class="btn btn-primary"
+                id="final-confirm-import-btn">Proceed</button></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let delType = null, delId = null;
+    let pendingImport = null;
+
+    function renderInstruments() {
+        const insts = FretLogData.getInstruments();
+        const user = FretLogData.getUser();
+        document.getElementById('instruments-list').innerHTML = insts.sort((a, b) => a.name.localeCompare(b.name)).map(i => `
+            <tr><td>${i.icon}</td><td>${i.name}</td>
+            <td>${user?.defaultInstrumentId === i.id ? '<span class="badge badge-success">Default</span>' : `<button class="btn btn-ghost btn-sm" onclick="setDefaultInst('${i.id}')">Set Default</button>`}</td>
+            <td class="text-right"><button class="btn btn-ghost btn-sm" onclick="editInst('${i.id}')">Edit</button><button class="btn btn-ghost btn-sm text-danger" onclick="confirmDelInst('${i.id}', '${i.name}')">Delete</button></td></tr>
+        `).join('');
+    }
+
+    function renderCategories() {
+        document.getElementById('categories-list').innerHTML = FretLogData.getCategories().sort((a, b) => a.name.localeCompare(b.name)).map(c => `
+            <tr><td>${c.icon}</td><td>${c.name}</td><td><span class="badge" style="background:${c.color}1a; color:${c.color}; border:1px solid ${c.color}33;">${c.type}</span></td>
+            <td class="text-right"><button class="btn btn-ghost btn-sm" onclick="editCat('${c.id}')">Edit</button>
+            ${(c.name === 'Song' || c.name === 'Songs') ? '' : `<button class="btn btn-ghost btn-sm text-danger" onclick="confirmDelCat('${c.id}', '${c.name}')">Delete</button>`}</td></tr>
+        `).join('');
+    }
+
+    async function setDefaultInst(id) {
+        const u = FretLogData.getUser(); u.defaultInstrumentId = id; await FretLogData.saveUser(u);
+        renderInstruments(); updateUserInfo();
+    }
+
+    function editInst(id) {
+        const i = FretLogData.getInstruments().find(x => x.id === id);
+        if (i) { document.getElementById('instrument-modal-title').textContent = 'Edit Instrument'; document.getElementById('edit-instrument-id').value = id; document.getElementById('instrument-icon').value = i.icon; document.getElementById('instrument-name').value = i.name; openModal('instrument-modal'); }
+    }
+    async function saveInst() {
+        const id = document.getElementById('edit-instrument-id').value, icon = document.getElementById('instrument-icon').value.trim() || '🎸', name = document.getElementById('instrument-name').value.trim();
+        if (!name) return; if (id) await FretLogData.updateInstrument(id, { icon, name }); else await FretLogData.addInstrument({ icon, name });
+        closeModal('instrument-modal'); renderInstruments();
+    }
+    function confirmDelInst(id, name) { delType = 'inst'; delId = id; document.getElementById('delete-modal-title').textContent = 'Delete Instrument?'; document.getElementById('delete-modal-message').textContent = `Delete "${name}"?`; openModal('delete-modal'); }
+
+    function editCat(id) {
+        const c = FretLogData.getCategories().find(x => x.id === id); if (!c) return;
+        const isDef = c.name === 'Song' || c.name === 'Songs';
+        document.getElementById('category-modal-title').textContent = 'Edit Category'; document.getElementById('edit-category-id').value = id;
+        document.getElementById('category-icon').value = c.icon; document.getElementById('category-icon').disabled = isDef;
+        document.getElementById('category-name').value = c.name; document.getElementById('category-name').disabled = isDef;
+        document.getElementById('category-color').value = c.color; openModal('category-modal');
+    }
+    async function saveCat() {
+        const id = document.getElementById('edit-category-id').value, icon = document.getElementById('category-icon').value.trim() || '🎵', name = document.getElementById('category-name').value.trim(), color = document.getElementById('category-color').value;
+        if (!name) return; if (id) await FretLogData.updateCategory(id, { icon, name, type: name, color }); else await FretLogData.addCategory({ icon, name, type: name, color });
+        closeModal('category-modal'); renderCategories();
+    }
+    function confirmDelCat(id, name) { delType = 'cat'; delId = id; document.getElementById('delete-modal-title').textContent = 'Delete Category?'; document.getElementById('delete-modal-message').textContent = `Delete "${name}"? Library items will remain but category will be unknown.`; openModal('delete-modal'); }
+
+    async function confirmDelete() {
+        if (delType === 'inst') await FretLogData.deleteInstrument(delId); else if (delType === 'cat') await FretLogData.deleteCategory(delId);
+        closeModal('delete-modal'); renderInstruments(); renderCategories();
+    }
+
+    async function exportData() {
+        const data = await FretLogData.exportAllData();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `fretlog-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click(); URL.revokeObjectURL(url); showNotification('Exported!');
+    }
+
+    function handleFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        e.target.value = '';
+        if (!file.name.toLowerCase().endsWith('.json')) {
+            showImportError('Invalid file type. Please select a JSON file.');
+            openModal('import-preview-modal');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                let data;
+                try { data = JSON.parse(ev.target.result); } catch (jsonErr) { throw new Error('File contains invalid JSON data.'); }
+                if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid data format.');
+                const validKeys = ['users', 'library_items', 'sessions', 'artists', 'instruments', 'categories'];
+                if (!validKeys.some(key => key in data)) throw new Error('Invalid FretLog backup file.');
+                pendingImport = data;
+                const list = document.getElementById('import-summary-list');
+                let html = '<div class="flex flex-col gap-sm">';
+                const userData = (pendingImport.users && pendingImport.users.length > 0) ? pendingImport.users[0] : null;
+                if (userData && userData.name) {
+                    html += `<div class="flex items-center gap-md"><span style="font-size: 1.25rem;">👤</span><span><strong>Profile:</strong> ${userData.name}</span></div>`;
+                }
+                const sections = [
+                    { key: ['library_items', 'library'], name: 'Library Items', icon: '📚', type: 'library' },
+                    { key: ['sessions'], name: 'Sessions', icon: '⏱️', type: 'sessions' },
+                    { key: ['artists'], name: 'Artists', icon: '🎤', type: 'artists' },
+                    { key: ['instruments'], name: 'Instruments', icon: '🎸', type: 'instruments' },
+                    { key: ['categories'], name: 'Categories', icon: '📋', type: 'categories' }
+                ];
+
+                // Helper to get existing IDs
+                const getExistingIds = (type) => {
+                    const data = FretLogData.getData(type);
+                    return new Set(data.map(i => i.id));
+                };
+
+                sections.forEach(sec => {
+                    const keys = Array.isArray(sec.key) ? sec.key : [sec.key];
+                    let items = [];
+                    for (const key of keys) { if (pendingImport[key] && Array.isArray(pendingImport[key])) { items = pendingImport[key]; break; } }
+
+                    if (items.length > 0) {
+                        const existingIds = getExistingIds(sec.type);
+                        const newCount = items.filter(i => !existingIds.has(i.id)).length;
+
+                        if (newCount > 0) {
+                            html += `<div class="flex items-center gap-md"><span style="font-size: 1.25rem;">${sec.icon}</span><span><strong>${sec.name}:</strong> ${newCount} new</span></div>`;
+                        } else {
+                            // Optional: show that items exist but no new ones? 
+                            // User request: "Dont list Items number for items that are already in the database"
+                            // So we skip if 0 new items.
+                        }
+                    }
+                });
+
+                html += '</div><div class="text-secondary mt-lg pt-md" style="font-size: var(--font-size-small); border-top: 1px solid var(--border-color);"><strong>Note:</strong> Only new items will be added. Existing items with the same IDs will be skipped/merged.</div>';
+                list.innerHTML = html;
+                document.getElementById('import-preview-content').classList.remove('hidden');
+                document.getElementById('import-error-content').classList.add('hidden');
+                document.getElementById('final-confirm-import-btn').textContent = 'Proceed with Import';
+                document.getElementById('final-confirm-import-btn').disabled = false;
+            } catch (err) { showImportError(err.message); }
+            openModal('import-preview-modal');
+        };
+        reader.readAsText(file);
+    }
+
+    function showImportError(msg) {
+        document.getElementById('import-preview-content').classList.add('hidden');
+        document.getElementById('import-error-content').classList.remove('hidden');
+        document.getElementById('import-error-message').textContent = msg;
+        document.getElementById('final-confirm-import-btn').disabled = true;
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await FretLogData.init(); renderInstruments(); renderCategories();
+        const u = FretLogData.getUser(); document.getElementById('profile-name').value = u?.name || ''; document.getElementById('profile-email').value = u?.email || '';
+        const th = FretLogData.getTheme(); document.getElementById('theme-light').checked = th === 'light'; document.getElementById('theme-dark').checked = th === 'dark';
+
+        document.getElementById('save-profile-btn').addEventListener('click', async () => {
+            const u = FretLogData.getUser(); u.name = document.getElementById('profile-name').value.trim(); u.email = document.getElementById('profile-email').value.trim();
+            await FretLogData.saveUser(u); updateUserInfo(); showNotification('Profile saved!');
+        });
+        document.querySelectorAll('input[name="theme-radio"]').forEach(r => r.addEventListener('change', () => FretLogData.setTheme(r.value)));
+        document.getElementById('add-instrument-btn').addEventListener('click', () => { document.getElementById('instrument-modal-title').textContent = 'Add Instrument'; document.getElementById('edit-instrument-id').value = ''; document.getElementById('instrument-icon').value = '🎸'; document.getElementById('instrument-name').value = ''; openModal('instrument-modal'); });
+        document.getElementById('save-instrument-btn').addEventListener('click', saveInst);
+        document.getElementById('add-category-btn').addEventListener('click', () => { document.getElementById('category-modal-title').textContent = 'Add Category'; document.getElementById('edit-category-id').value = ''; document.getElementById('category-icon').value = '🎵'; document.getElementById('category-name').value = ''; document.getElementById('category-color').value = '#4f46e5'; openModal('category-modal'); });
+        document.getElementById('save-category-btn').addEventListener('click', saveCat);
+        document.getElementById('confirm-delete-btn').addEventListener('click', confirmDelete);
+        document.getElementById('export-data-btn').addEventListener('click', exportData);
+        document.getElementById('import-data-btn').addEventListener('click', () => document.getElementById('import-file').click());
+        document.getElementById('import-file').addEventListener('change', handleFile);
+        document.getElementById('final-confirm-import-btn').addEventListener('click', async () => { if (pendingImport) { await FretLogData.importAllData(pendingImport); closeModal('import-preview-modal'); location.reload(); } });
+        document.getElementById('clear-data-btn').addEventListener('click', () => { document.getElementById('confirm-clear-text').value = ''; openModal('clear-data-modal'); });
+        document.getElementById('confirm-clear-data-btn').addEventListener('click', async () => { if (document.getElementById('confirm-clear-text').value === 'Confirm') { await FretLogData.resetAllData(); location.reload(); } else document.getElementById('clear-confirm-error').classList.remove('hidden'); });
+    });
+</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}

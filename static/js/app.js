@@ -56,16 +56,7 @@ function updateMotivationCard() {
 // ==========================================
 // Utility Functions
 // ==========================================
-function openModal(modalId) {
-    document.getElementById(modalId)?.classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeModal(modalId) {
-    document.getElementById(modalId)?.classList.remove('active');
-    document.body.style.overflow = '';
-}
-
+// Utility Functions
 function formatTime(ms) {
     return FretLogTimer.formatTime(ms);
 }
@@ -579,8 +570,7 @@ window.addEventListener('fretlog-data-ready', () => {
 
 // Make functions globally available
 window.startSession = startSession;
-window.openModal = openModal;
-window.closeModal = closeModal;
+function dummyRestOfFile() { } // Just to match range if needed but let's be precise
 window.playItem = playItem;
 window.pauseItem = pauseItem;
 window.removeSessionItem = removeSessionItem;
@@ -934,25 +924,8 @@ function setupEventListeners() {
         }
     });
 
-    // Close modals on overlay click
-    document.querySelectorAll('.modal-overlay').forEach(overlay => {
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                overlay.classList.remove('active');
-                document.body.style.overflow = '';
-            }
-        });
-    });
-
-    // Close modals on escape
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            document.querySelectorAll('.modal-overlay.active').forEach(m => {
-                m.classList.remove('active');
-            });
-            document.body.style.overflow = '';
-        }
-    });
+    // Auto-resize textareas
+    initAutoResizeTextareas();
 }
 
 async function initAutoResizeTextareas() {

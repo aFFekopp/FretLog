@@ -1,238 +1,175 @@
-"""
-FretLog - Flask Backend Server
-Provides REST API with SQLite database persistence
-"""
-
-from flask import Flask, jsonify, request, send_from_directory, g
+from flask import Flask, jsonify, request, render_template, g, redirect, send_from_directory
 from flask_cors import CORS
 import sqlite3
 import os
-from datetime import datetime
+import json
 import uuid
+from datetime import datetime
 
-app = Flask(__name__, static_folder='static')
+DATABASE = os.getenv('DATABASE_PATH', os.path.join('data', 'fretlog.db'))
+
+app = Flask(__name__)
 CORS(app)
-app.config['SECRET_KEY'] = 'dev-secret-key-change-this'
-
-DATABASE = os.getenv('DATABASE_PATH', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'fretlog.db'))
 
 def get_db():
-    """Get database connection with row factory for dict results"""
-    db_dir = os.path.dirname(DATABASE)
-    if db_dir and not os.path.exists(db_dir):
-        try:
-            os.makedirs(db_dir)
-        except OSError:
-            pass # Permission issue or exists
-    
-    if 'db' not in g:
-        g.db = sqlite3.connect(DATABASE, timeout=30)
-        g.db.row_factory = sqlite3.Row
-        # Enable WAL mode for better concurrency
-        g.db.execute('PRAGMA journal_mode=WAL')
-        g.db.execute('PRAGMA busy_timeout=5000')
-    return g.db
+    db = getattr(g, '_database', None)
+    if db is None:
+        # ensure directory exists
+        os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
+        db = g._database = sqlite3.connect(DATABASE)
+        db.row_factory = sqlite3.Row
+    return db
 
 @app.teardown_appcontext
-def close_db(error):
-    """Close the database at the end of the request"""
-    db = g.pop('db', None)
+def close_connection(exception):
+    db = getattr(g, '_database', None)
     if db is not None:
         db.close()
 
 def dict_from_row(row):
-    """Convert sqlite3.Row to dict"""
     return dict(row) if row else None
 
 def generate_id():
-    """Generate unique ID similar to the JS version"""
-    return uuid.uuid4().hex[:16]
+    return str(uuid.uuid4())
 
 def init_db():
-    """Initialize database tables"""
-    conn = get_db()
+    # ensure directory exists
+    os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
+    
+    conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
     
-    # Users table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL DEFAULT 'Musician',
-            email TEXT DEFAULT '',
-            avatar TEXT,
-            default_instrument_id TEXT,
-            created_at TEXT NOT NULL
-        )
-    ''')
+    # Tables
+    cursor.execute('''CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY, name TEXT, email TEXT, avatar TEXT, 
+        default_instrument_id TEXT, created_at TEXT)''')
     
-    # Categories table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS categories (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            type TEXT NOT NULL,
-            icon TEXT DEFAULT '🎵',
-            color TEXT
-        )
-    ''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS categories (
+        id TEXT PRIMARY KEY, name TEXT, type TEXT, icon TEXT, color TEXT)''')
     
-    # Instruments table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS instruments (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            icon TEXT DEFAULT '🎸'
-        )
-    ''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS instruments (
+        id TEXT PRIMARY KEY, name TEXT, icon TEXT)''')
     
-    # Artists table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS artists (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL
-        )
-    ''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS artists (
+        id TEXT PRIMARY KEY, name TEXT)''')
     
-    # Library items table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS library_items (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            category_id TEXT,
-            artist_id TEXT,
-            star_rating INTEGER DEFAULT 0,
-            notes TEXT DEFAULT '',
-            created_at TEXT NOT NULL,
-            FOREIGN KEY (category_id) REFERENCES categories(id),
-            FOREIGN KEY (artist_id) REFERENCES artists(id)
-        )
-    ''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS library_items (
+        id TEXT PRIMARY KEY, name TEXT, category_id TEXT, artist_id TEXT, 
+        star_rating INTEGER, notes TEXT, created_at TEXT)''')
     
-    # Sessions table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS sessions (
-            id TEXT PRIMARY KEY,
-            instrument_id TEXT,
-            status TEXT DEFAULT 'running',
-            date TEXT NOT NULL,
-            start_time INTEGER,
-            end_time INTEGER,
-            total_time INTEGER DEFAULT 0,
-            notes TEXT DEFAULT '',
-            created_at TEXT NOT NULL,
-            FOREIGN KEY (instrument_id) REFERENCES instruments(id)
-        )
-    ''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY, instrument_id TEXT, status TEXT, date TEXT, 
+        start_time TEXT, end_time TEXT, total_time INTEGER, notes TEXT, created_at TEXT)''')
     
-    # Session items table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS session_items (
-            id TEXT PRIMARY KEY,
-            session_id TEXT NOT NULL,
-            library_item_id TEXT,
-            name TEXT NOT NULL,
-            category_id TEXT,
-            time_spent INTEGER DEFAULT 0,
-            started_at INTEGER,
-            FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
-            FOREIGN KEY (library_item_id) REFERENCES library_items(id),
-            FOREIGN KEY (category_id) REFERENCES categories(id)
-        )
-    ''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS session_items (
+        id TEXT PRIMARY KEY, session_id TEXT, library_item_id TEXT, name TEXT, 
+        category_id TEXT, time_spent INTEGER, started_at TEXT)''')
     
-    # Settings table (for theme, current_session, etc.)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS settings (
-            key TEXT PRIMARY KEY,
-            value TEXT
-        )
-    ''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY, value TEXT)''')
     
+    # Default data if empty
+    cursor.execute('SELECT count(*) FROM users')
+    if cursor.fetchone()[0] == 0:
+        init_default_data(conn)
+        
     conn.commit()
-    
-    # Migration: Add color column to categories if not exists
-    cursor.execute("PRAGMA table_info(categories)")
-    columns = [column[1] for column in cursor.fetchall()]
-    if 'color' not in columns:
-        print("Migrating: Adding color column to categories table...")
-        cursor.execute("ALTER TABLE categories ADD COLUMN color TEXT")
-    
-    conn.commit()
-    
-    # Create indexes for better query performance
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(date)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_session_items_session_id ON session_items(session_id)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_library_items_category ON library_items(category_id)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_library_items_artist ON library_items(artist_id)')
-    
-    conn.commit()
-    
-    # Initialize default data if not exists
-    init_default_data(conn)
     conn.close()
 
 def init_default_data(conn):
-    """Initialize default user, categories, and instruments"""
     cursor = conn.cursor()
+    user_id = generate_id()
+    cursor.execute('INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)', 
+                   (user_id, 'Musician', datetime.now().isoformat()))
     
-    # Check if user exists
-    cursor.execute('SELECT COUNT(*) FROM users')
-    if cursor.fetchone()[0] == 0:
-        user_id = generate_id()
-        cursor.execute('''
-            INSERT INTO users (id, name, email, created_at)
-            VALUES (?, 'Musician', '', ?)
-        ''', (user_id, datetime.now().isoformat()))
+    # Default Categories
+    cats = [
+        ('cat-ear-training', 'Ear Training', 'Ear Training', '👂', '#f59e0b'),
+        ('cat-lesson', 'Lesson', 'Lesson', '🎓', '#3b82f6'),
+        ('cat-song', 'Song', 'Song', '🎵', '#4f46e5'),
+        ('cat-technique', 'Technique', 'Technique', '💪', '#10b981'),
+        ('cat-theory', 'Theory', 'Theory', '📚', '#8b5cf6')
+    ]
+    for cat_id, name, type_val, icon, color in cats:
+        cursor.execute('INSERT INTO categories (id, name, type, icon, color) VALUES (?, ?, ?, ?, ?)',
+                       (cat_id, name, type_val, icon, color))
     
-    # Check if categories exist
-    cursor.execute('SELECT COUNT(*) FROM categories')
-    if cursor.fetchone()[0] == 0:
-        default_categories = [
-            ('cat-song', 'Song', 'Song', '🎵', '#4f46e5'),
-            ('cat-theory', 'Theory', 'Theory', '📚', '#0ea5e9'),
-            ('cat-lesson', 'Lesson', 'Lesson', '📖', '#f59e0b'),
-            ('cat-ear', 'Ear Training', 'Ear Training', '👂', '#10b981'),
-            ('cat-tech', 'Technique', 'Technique', '🎯', '#ef4444')
-        ]
-        cursor.executemany('''
-            INSERT OR REPLACE INTO categories (id, name, type, icon, color) VALUES (?, ?, ?, ?, ?)
-        ''', default_categories)
+    # Default Instruments
+    insts = [
+        ('inst-bass', 'Bass', '🎸'), 
+        ('inst-drums', 'Drums', '🥁'),
+        ('inst-guitar', 'Guitar', '🎸'), 
+        ('inst-piano', 'Piano', '🎹')
+    ]
+    for inst_id, name, icon in insts:
+        cursor.execute('INSERT INTO instruments (id, name, icon) VALUES (?, ?, ?)',
+                       (inst_id, name, icon))
     
-    # Check if instruments exist
-    cursor.execute('SELECT COUNT(*) FROM instruments')
-    if cursor.fetchone()[0] == 0:
-        default_instruments = [
-            ('inst-guitar', 'Guitar', '🎸'),
-            ('inst-piano', 'Piano', '🎹'),
-            ('inst-bass', 'Bass', '🎸'),
-            ('inst-drums', 'Drums', '🥁')
-        ]
-        cursor.executemany('''
-            INSERT OR REPLACE INTO instruments (id, name, icon) VALUES (?, ?, ?)
-        ''', default_instruments)
-        
-        # Set first instrument as default for user
-        cursor.execute("UPDATE users SET default_instrument_id = 'inst-guitar'")
+    # Set default instrument for user
+    cursor.execute('UPDATE users SET default_instrument_id=? WHERE id=?', ('inst-guitar', user_id))
     
     conn.commit()
 
+@app.context_processor
+def inject_user():
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Get User
+        cursor.execute('SELECT * FROM users LIMIT 1')
+        user_row = cursor.fetchone()
+        user = dict(user_row) if user_row else None
+        
+        # Get Current Instrument
+        instrument = None
+        if user and user.get('default_instrument_id'):
+            cursor.execute('SELECT * FROM instruments WHERE id=?', (user['default_instrument_id'],))
+            inst_row = cursor.fetchone()
+            if inst_row:
+                instrument = dict(inst_row)
+        
+        return dict(current_user=user, current_instrument=instrument)
+    except Exception as e:
+        print(f"Error injecting user context: {e}")
+        return dict(current_user=None, current_instrument=None)
+
 # ==========================================
-# Static File Routes
+# Page Routes
 # ==========================================
 @app.route('/')
 def index():
-    return send_from_directory('.', 'index.html')
+    return render_template('index.html', active_page='dashboard')
 
-@app.route('/<path:filename>')
-def serve_static(filename):
-    if filename.endswith('.html'):
-        return send_from_directory('.', filename)
-    return send_from_directory('.', filename)
+@app.route('/sessions')
+def sessions():
+    return render_template('sessions.html', active_page='sessions')
+
+@app.route('/library')
+def library():
+    return render_template('library.html', active_page='library')
+
+@app.route('/statistics')
+def statistics():
+    return render_template('statistics.html', active_page='statistics')
+
+@app.route('/settings')
+def settings():
+    return render_template('settings.html', active_page='settings')
 
 @app.route('/static/<path:filename>')
 def serve_static_assets(filename):
     return send_from_directory('static', filename)
+
+@app.route('/<path:filename>')
+def serve_legacy_html(filename):
+    # Support legacy .html links if any, redirect to clean routes
+    if filename.endswith('.html'):
+        base = filename[:-5]
+        if base == 'index': return redirect('/')
+        return redirect('/' + base)
+    return send_from_directory('.', filename)
+
 
 # ==========================================
 # Init API - Single endpoint for all startup data
@@ -349,9 +286,19 @@ def add_category():
     conn = get_db()
     cursor = conn.cursor()
     
-    cat_id = generate_id()
+    cat_id = data.get('id') or generate_id()
+    
+    # Check if exists (for restore/import scenarios)
+    cursor.execute('SELECT * FROM categories WHERE id=?', (cat_id,))
+    if cursor.fetchone():
+         # Update if exists? Or skip? For now let's update or just return existing
+         pass 
+         # We'll just try insert and let it fail or use INSERT OR REPLACE if we wanted
+         # But simpler:
+    
+    # Use INSERT OR REPLACE to handle re-seeding same IDs
     cursor.execute('''
-        INSERT INTO categories (id, name, type, icon, color) VALUES (?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO categories (id, name, type, icon, color) VALUES (?, ?, ?, ?, ?)
     ''', (cat_id, data.get('name'), data.get('type'), data.get('icon', '🎵'), data.get('color')))
     
     conn.commit()
@@ -403,9 +350,10 @@ def add_instrument():
     conn = get_db()
     cursor = conn.cursor()
     
-    inst_id = generate_id()
+    inst_id = data.get('id') or generate_id()
+    
     cursor.execute('''
-        INSERT INTO instruments (id, name, icon) VALUES (?, ?, ?)
+        INSERT OR REPLACE INTO instruments (id, name, icon) VALUES (?, ?, ?)
     ''', (inst_id, data.get('name'), data.get('icon', '🎸')))
     
     conn.commit()

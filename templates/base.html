@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="FretLog - {% block description %}Personal Practice Logger{% endblock %}">
+    <title>{% block title %}{% endblock %} - FretLog</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/fretlog_icon.png') }}">
+
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('fretlog-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+
+    {% block styles %}{% endblock %}
+</head>
+
+<body data-page="{{ active_page }}">
+    <div class="app-container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <a href="/" class="logo">
+                    <img src="{{ url_for('static', filename='img/fretlog_icon.png') }}" alt="FretLog Logo"
+                        class="logo-icon" style="width: 48px; height: 48px; border-radius: 8px;">
+                    <span>FretLog</span>
+                </a>
+                <nav class="main-nav">
+                    <a href="/" class="nav-link" data-page="dashboard">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7" rx="1" />
+                            <rect x="14" y="3" width="7" height="7" rx="1" />
+                            <rect x="3" y="14" width="7" height="7" rx="1" />
+                            <rect x="14" y="14" width="7" height="7" rx="1" />
+                        </svg>
+                        Dashboard
+                    </a>
+                    <a href="/sessions" class="nav-link" data-page="sessions">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        Sessions
+                    </a>
+                    <a href="/library" class="nav-link" data-page="library">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                        </svg>
+                        Library
+                    </a>
+                    <a href="/statistics" class="nav-link" data-page="statistics">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10" />
+                            <line x1="12" y1="20" x2="12" y2="4" />
+                            <line x1="6" y1="20" x2="6" y2="14" />
+                        </svg>
+                        Statistics
+                    </a>
+                </nav>
+            </div>
+            <div class="header-right">
+                <div id="global-active-item-info" class="flex flex-col items-end hidden"
+                    style="margin-right: 12px; justify-content: center;">
+                    <span id="global-active-item-name" class="text-secondary font-semibold"
+                        style="font-size: 0.85rem; line-height: 1.2;"></span>
+                    <span id="global-active-item-timer" class="text-primary font-bold"
+                        style="font-size: 0.8rem; line-height: 1.2;">00:00</span>
+                </div>
+                <button class="icon-btn hidden" id="global-pause-btn" title="Pause Active Timer"
+                    onclick="toggleGlobalTimer()"
+                    style="color: var(--color-primary); background: rgba(74, 95, 217, 0.1);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="6" y="4" width="4" height="16"></rect>
+                        <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="theme-toggle" title="Toggle theme">
+                    <span class="theme-icon">🌙</span>
+                </button>
+                <a href="/settings" class="icon-btn" title="Settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                </a>
+                <div class="user-profile dropdown" id="user-dropdown">
+                    <div class="user-avatar" id="user-avatar">{{ (current_user.name or 'Musician')[0] | upper }}</div>
+                    <div class="user-info">
+                        <span class="user-name" id="user-name">{{ current_user.name or 'Musician' }}</span>
+                        <span class="user-instrument" id="user-instrument">{{ current_instrument.name or 'Guitar' if
+                            current_instrument else 'Select Instrument' }}</span>
+                    </div>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-item" onclick="openModal('change-instrument-modal')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                            Change Instrument
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Shared Modals -->
+    <div class="modal-overlay" id="change-instrument-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Select Instrument</h3>
+                <button class="modal-close" onclick="closeModal('change-instrument-modal')">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Instrument</label>
+                    <select class="form-select" id="select-instrument">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('change-instrument-modal')">Cancel</button>
+                <button class="btn btn-primary" id="confirm-instrument">Select</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Core Scripts -->
+    <script src="{{ url_for('static', filename='js/data.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/timer.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+
+    <script>
+        // Shared logic for all pages
+        (function () {
+            // Load cache immediately to show user data if available
+            if (FretLogData && FretLogData.loadFromCache) {
+                FretLogData.loadFromCache();
+            }
+
+            // Initial user display update
+            updateUserDisplay();
+
+            // Handle instrument change
+            const confirmBtn = document.getElementById('confirm-instrument');
+            const instrumentSelect = document.getElementById('select-instrument');
+
+            if (confirmBtn && instrumentSelect) {
+                // Populate instruments
+                const instruments = FretLogData.getInstruments().sort((a, b) => a.name.localeCompare(b.name));
+                instrumentSelect.innerHTML = instruments.map(i =>
+                    `<option value="${i.id}">${i.icon} ${i.name}</option>`
+                ).join('');
+
+                const user = FretLogData.getUser();
+                if (user && user.defaultInstrumentId) {
+                    instrumentSelect.value = user.defaultInstrumentId;
+                }
+
+                confirmBtn.onclick = async () => {
+                    const user = FretLogData.getUser();
+                    user.defaultInstrumentId = instrumentSelect.value;
+                    await FretLogData.saveUser(user);
+                    updateUserDisplay();
+                    closeModal('change-instrument-modal');
+                    // Reload if page logic depends on instrument
+                    if (window.onInstrumentChange) window.onInstrumentChange();
+                };
+            }
+        })();
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>
