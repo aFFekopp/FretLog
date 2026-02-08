@@ -18,5 +18,5 @@ COPY . .
 # Expose port (Internal Flask port)
 EXPOSE 5000
 
-# Run the application
-CMD ["python", "server.py"]
+# Run the application with gunicorn for production efficiency
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--threads", "4", "server:app"]

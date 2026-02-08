@@ -856,9 +856,10 @@ a:hover {
 .practice-item-time {
   font-weight: var(--font-weight-semibold);
   color: var(--color-primary);
-  width: 70px;
+  width: 100px;
   text-align: right;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* ==========================================
@@ -1514,6 +1515,16 @@ td.text-right {
 
 .hidden {
   display: none !important;
+}
+
+.desktop-only {
+  display: inline-flex !important;
+}
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
 }
 
 /* ==========================================

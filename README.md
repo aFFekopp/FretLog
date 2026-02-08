@@ -43,6 +43,7 @@ The easiest way to run FretLog is using Docker Compose with the pre-built image.
          - "5000:5000"
        environment:
          - DATABASE_PATH=/app/data/fretlog.db
+         - FLASK_DEBUG=0
        volumes:
          - ./data:/app/data
    ```
@@ -56,10 +57,11 @@ The easiest way to run FretLog is using Docker Compose with the pre-built image.
    Open [http://localhost:5000](http://localhost:5000) in your browser.
 
 ## Tech Stack
-- **Backend**: Python (Flask), SQLite
-- **Frontend**: Vanilla JS, HTML5, CSS3 (Modern Flex/Grid), Chart.js
-- **PWA**: Service Workers, Web Manifest
-- **Deployment**: Docker, GHCR, GitHub Actions
+- **Backend**: Python 3.11 (Flask), Gunicorn (Production WSGI)
+- **Database**: SQLite3
+- **Frontend**: Vanilla JS (Modern ES6+), HTML5, CSS3, Chart.js
+- **PWA**: Service Workers (Background caching), Web Manifest
+- **Deployment**: Docker, Docker Compose, GHCR, GitHub Actions
 
 ## License
 Intended for personal use. Feel free to fork and adapt it to your needs.

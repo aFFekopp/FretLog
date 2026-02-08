@@ -7,5 +7,6 @@ services:
       - "5000:5000"
     environment:
       - DATABASE_PATH=/app/data/fretlog.db
+      - FLASK_DEBUG=0
     volumes:
       - ./data:/app/data

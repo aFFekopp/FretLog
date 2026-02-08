@@ -350,11 +350,22 @@ function updateSessionItemsList() {
     emptyState?.classList.add('hidden');
 
     const categories = FretLogData.getCategories();
+    const libraryItems = FretLogData.getLibraryItems();
 
     list.innerHTML = session.items.map(item => {
         const category = categories.find(c => c.id === (item.categoryId || item.category_id));
         const isActive = activeItemId === item.id;
         const timeSpent = item.timeSpent || item.time_spent || 0;
+
+        // Find rating from library
+        const libItem = libraryItems.find(li => li.id === (item.libraryItemId || item.library_item_id));
+        const rating = libItem ? (libItem.starRating || 0) : 0;
+
+        // Render stars
+        let starsHtml = '';
+        for (let i = 1; i <= 5; i++) {
+            starsHtml += `<span class="star ${i <= rating ? 'filled' : ''}" data-rating="${i}">★</span>`;
+        }
 
         return `
             <li class="practice-list-item practice-item ${isActive ? 'active' : ''}" data-item-id="${item.id}">
@@ -367,6 +378,10 @@ function updateSessionItemsList() {
                 <span class="badge" style="background-color: ${category?.color}1a; color: ${category?.color}; border: 1px solid ${category?.color}33; margin-right: var(--spacing-sm);">${category?.icon || '🎵'} ${category?.name || 'Unknown'}</span>
                 <div class="practice-item-info">
                     <span class="practice-item-name">${item.name}</span>
+                    <div class="star-rating desktop-only" style="margin-left: 8px; font-size: 0.9em; vertical-align: middle;" 
+                         onclick="updateDashboardRating('${libItem?.id}', event)">
+                        ${starsHtml}
+                    </div>
                 </div>
                 <span class="practice-item-time" id="item-time-${item.id}" style="margin-left: auto; margin-right: var(--spacing-md);">${FretLogTimer.formatDuration(timeSpent)}</span>
                 <div class="practice-item-actions">
@@ -376,6 +391,30 @@ function updateSessionItemsList() {
         `;
     }).join('');
 }
+
+/**
+ * Update the star rating of a library item from the dashboard
+ */
+async function updateDashboardRating(libItemId, event) {
+    if (!libItemId || libItemId === 'undefined') return;
+    const star = event.target.closest('.star');
+    if (!star) return;
+
+    event.stopPropagation(); // Don't trigger other clicks
+
+    let newRating = parseInt(star.dataset.rating);
+    const libItem = FretLogData.getLibraryItems().find(i => i.id === libItemId);
+
+    if (libItem) {
+        // Toggle off if clicking the same rating
+        if (newRating === (libItem.starRating || 0)) newRating = 0;
+        await FretLogData.updateLibraryItem(libItemId, { starRating: newRating });
+
+        // Refresh the list to show new stars
+        updateSessionItemsList();
+    }
+}
+window.updateDashboardRating = updateDashboardRating;
 
 // Helper to toggle global pause button visibility and state
 function updateGlobalHeaderUI(visible, isPlaying = true, itemName = '', timeText = '') {

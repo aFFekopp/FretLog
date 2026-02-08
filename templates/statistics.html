@@ -201,7 +201,7 @@
     </div>
 </div>
 
-<div class="grid grid-2 gap-lg">
+<div class="grid grid-2 gap-lg" style="align-items: flex-start;">
     <!-- Category Breakdown -->
     <div>
         <h3 class="card-title mb-md">Category Breakdown</h3>
@@ -217,7 +217,7 @@
             <div class="chart-container">
                 <canvas id="category-chart"></canvas>
             </div>
-            <div id="category-list" class="mt-lg"></div>
+            <ul id="category-list" class="practice-list" style="margin-top: var(--spacing-md);"></ul>
         </div>
     </div>
 
@@ -384,7 +384,7 @@
             options: {
                 responsive: true, maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'bottom', labels: { color: isDark ? '#9CA3AF' : '#4A4A4A', padding: 15 } },
+                    legend: { display: false },
                     tooltip: {
                         callbacks: {
                             label: c => {
@@ -400,9 +400,9 @@
 
         document.getElementById('category-list').innerHTML = breakdown.length ? breakdown.map(c => {
             const p = total > 0 ? Math.round((c.totalTime / total) * 100) : 0;
-            return `<div class="practice-item"><div class="practice-item-info"><span class="practice-item-name">
+            return `<li class="practice-item"><div class="practice-item-info"><span class="practice-item-name">
                 <span style="display:inline-block; width:12px; height:12px; background:${c.color}; border-radius:2px; margin-right:8px;"></span>
-                ${c.icon} ${c.name}</span></div><span class="practice-item-time">${formatTimeHuman(c.totalTime)} (${p}%)</span></div>`;
+                ${c.icon} ${c.name}</span></div><span class="practice-item-time">${formatTimeHuman(c.totalTime)} (${p}%)</span></li>`;
         }).join('') : '<p class="text-center text-secondary">No data</p>';
     }
 

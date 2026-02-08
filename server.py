@@ -1095,5 +1095,10 @@ def serve_sw():
 if __name__ == '__main__':
     with app.app_context():
         init_db()
-    print("Starting FretLog server on 0.0.0.0:5000")
-    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=True)
+    
+    # Use environment variables for production flexibility
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() in ('true', '1', 't')
+    use_reloader = os.getenv('FLASK_USE_RELOADER', str(debug_mode)).lower() in ('true', '1', 't')
+    
+    print(f"Starting FretLog server on 0.0.0.0:5000 (Debug: {debug_mode}, Reloader: {use_reloader})")
+    app.run(debug=debug_mode, host='0.0.0.0', port=5000, use_reloader=use_reloader)
