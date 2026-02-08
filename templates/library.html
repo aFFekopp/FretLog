@@ -710,7 +710,7 @@
     function openItemModal(item = null) {
         document.getElementById('item-modal-title').textContent = item ? 'Edit Item' : 'Add Item';
         document.getElementById('edit-item-id').value = item?.id || '';
-        document.getElementById('item-category').innerHTML = FretLogData.getCategories().map(c => `< option value = "${c.id}" ${item?.categoryId === c.id ? 'selected' : ''}> ${c.icon} ${c.name}</option > `).join('');
+        document.getElementById('item-category').innerHTML = FretLogData.getCategories().map(c => `<option value="${c.id}" ${item?.categoryId === c.id ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('');
         populateArtistSelect(item?.artistId);
         document.getElementById('item-name').value = item?.name || '';
         selectedRating = item?.starRating || 0;
@@ -721,7 +721,7 @@
 
     function populateArtistSelect(id = null) {
         document.getElementById('item-artist').innerHTML = '<option value="">Select artist...</option>' +
-            FretLogData.getArtists().sort((a, b) => a.name.localeCompare(b.name)).map(a => `< option value = "${a.id}" ${id === a.id ? 'selected' : ''}> ${a.name}</option > `).join('');
+            FretLogData.getArtists().sort((a, b) => a.name.localeCompare(b.name)).map(a => `<option value="${a.id}" ${id === a.id ? 'selected' : ''}>${a.name}</option>`).join('');
     }
 
     function updateCategoryFields() {
@@ -759,8 +759,8 @@
         const counts = {}; FretLogData.getLibraryItems().forEach(i => { const aid = i.artistId || i.artist_id; if (aid) counts[aid] = (counts[aid] || 0) + 1; });
         list.innerHTML = FretLogData.getArtists().sort((a, b) => a.name.localeCompare(b.name)).map(a => {
             const c = counts[a.id] || 0;
-            return `< div class="flex justify-between p-sm bg-card border rounded" ><div><strong>${a.name}</strong><br><small>${c} item${c !== 1 ? 's' : ''}</small></div>
-                <div class="flex gap-xs"><button class="btn btn-ghost btn-sm" onclick="editArtistClick('${a.id}')">Ren</button><button class="btn btn-ghost btn-sm text-danger" onclick="deleteArtistClick('${a.id}')">Del</button></div></div >`;
+            return `<div class="flex justify-between p-sm bg-card border rounded"><div><strong>${a.name}</strong><br><small>${c} item${c !== 1 ? 's' : ''}</small></div>
+                <div class="flex gap-xs"><button class="btn btn-ghost btn-sm" onclick="editArtistClick('${a.id}')">Ren</button><button class="btn btn-ghost btn-sm text-danger" onclick="deleteArtistClick('${a.id}')">Del</button></div></div>`;
         }).join('');
     }
 

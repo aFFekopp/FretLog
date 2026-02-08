@@ -52,60 +52,61 @@
     </div>
 </div>
 
-<!-- Instruments Section -->
-<div class="card mt-lg">
-    <div class="card-header">
-        <h3 class="card-title">Instruments</h3>
-        <button class="btn btn-primary btn-sm" id="add-instrument-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Add Instrument
-        </button>
+<!-- Instruments & Categories Grid -->
+<div class="grid grid-2 gap-lg mt-lg">
+    <!-- Instruments Section -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Instruments</h3>
+            <button class="btn btn-primary btn-sm" id="add-instrument-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add
+            </button>
+        </div>
+        <div class="table-container">
+            <table class="table" id="instruments-table">
+                <thead>
+                    <tr>
+                        <th width="40">Icon</th>
+                        <th>Name</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="instruments-list"></tbody>
+            </table>
+        </div>
     </div>
-    <div class="table-container">
-        <table class="table" id="instruments-table">
-            <thead>
-                <tr>
-                    <th>Icon</th>
-                    <th>Name</th>
-                    <th>Default</th>
-                    <th class="text-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody id="instruments-list"></tbody>
-        </table>
+
+    <!-- Categories Section -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Categories</h3>
+            <button class="btn btn-primary btn-sm" id="add-category-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add
+            </button>
+        </div>
+        <div class="table-container">
+            <table class="table" id="categories-table">
+                <thead>
+                    <tr>
+                        <th width="40">Icon</th>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="categories-list"></tbody>
+            </table>
+        </div>
     </div>
 </div>
-
-<!-- Categories Section -->
-<div class="card mt-lg">
-    <div class="card-header">
-        <h3 class="card-title">Categories</h3>
-        <button class="btn btn-primary btn-sm" id="add-category-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Add Category
-        </button>
-    </div>
-    <div class="table-container">
-        <table class="table" id="categories-table">
-            <thead>
-                <tr>
-                    <th>Icon</th>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th class="text-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody id="categories-list"></tbody>
-        </table>
-    </div>
-</div>
-
 <!-- Data Management -->
 <div class="card mt-lg">
     <div class="card-header">
@@ -274,18 +275,47 @@
     function renderInstruments() {
         const insts = FretLogData.getInstruments();
         const user = FretLogData.getUser();
-        document.getElementById('instruments-list').innerHTML = insts.sort((a, b) => a.name.localeCompare(b.name)).map(i => `
-            <tr><td>${i.icon}</td><td>${i.name}</td>
-            <td>${user?.defaultInstrumentId === i.id ? '<span class="badge badge-success">Default</span>' : `<button class="btn btn-ghost btn-sm" onclick="setDefaultInst('${i.id}')">Set Default</button>`}</td>
-            <td class="text-right"><button class="btn btn-ghost btn-sm" onclick="editInst('${i.id}')">Edit</button><button class="btn btn-ghost btn-sm text-danger" onclick="confirmDelInst('${i.id}', '${i.name}')">Delete</button></td></tr>
-        `).join('');
+        document.getElementById('instruments-list').innerHTML = insts.sort((a, b) => a.name.localeCompare(b.name)).map(i => {
+            const isDefault = user?.defaultInstrumentId === i.id;
+            return `
+            <tr onclick="setDefaultInst('${i.id}')" style="cursor: pointer; ${isDefault ? 'background-color: rgba(var(--color-primary-rgb), 0.1); border-left: 3px solid var(--color-primary);' : ''}">
+                <td style="font-size: 1.25rem;">${i.icon}</td>
+                <td class="font-medium">
+                    ${i.name}
+                    ${isDefault ? '<span class="text-primary" style="margin-left: 8px; font-size: 0.8em;">(Selected)</span>' : ''}
+                </td>
+                <td class="text-right">
+                    <div class="flex gap-xs justify-end">
+                        <button class="btn btn-ghost btn-icon btn-sm" onclick="event.stopPropagation(); editInst('${i.id}')" title="Edit">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                        </button>
+                        <button class="btn btn-ghost btn-icon btn-sm text-danger" onclick="event.stopPropagation(); confirmDelInst('${i.id}', '${i.name}')" title="Delete">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `}).join('');
     }
 
     function renderCategories() {
         document.getElementById('categories-list').innerHTML = FretLogData.getCategories().sort((a, b) => a.name.localeCompare(b.name)).map(c => `
-            <tr><td>${c.icon}</td><td>${c.name}</td><td><span class="badge" style="background:${c.color}1a; color:${c.color}; border:1px solid ${c.color}33;">${c.type}</span></td>
-            <td class="text-right"><button class="btn btn-ghost btn-sm" onclick="editCat('${c.id}')">Edit</button>
-            ${(c.name === 'Song' || c.name === 'Songs') ? '' : `<button class="btn btn-ghost btn-sm text-danger" onclick="confirmDelCat('${c.id}', '${c.name}')">Delete</button>`}</td></tr>
+            <tr>
+                <td style="font-size: 1.25rem;">${c.icon}</td>
+                <td class="font-medium">${c.name}</td>
+                <td><span class="badge" style="background:${c.color}1a; color:${c.color}; border:1px solid ${c.color}33;">${c.type}</span></td>
+                <td class="text-right">
+                    <div class="flex gap-xs justify-end">
+                        <button class="btn btn-ghost btn-icon btn-sm" onclick="editCat('${c.id}')" title="Edit">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                        </button>
+                        ${(c.name === 'Song' || c.name === 'Songs') ? '<div style="width:28px"></div>' : `
+                        <button class="btn btn-ghost btn-icon btn-sm text-danger" onclick="confirmDelCat('${c.id}', '${c.name}')" title="Delete">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                        </button>`}
+                    </div>
+                </td>
+            </tr>
         `).join('');
     }
 
@@ -429,6 +459,16 @@
         document.getElementById('final-confirm-import-btn').addEventListener('click', async () => { if (pendingImport) { await FretLogData.importAllData(pendingImport); closeModal('import-preview-modal'); location.reload(); } });
         document.getElementById('clear-data-btn').addEventListener('click', () => { document.getElementById('confirm-clear-text').value = ''; openModal('clear-data-modal'); });
         document.getElementById('confirm-clear-data-btn').addEventListener('click', async () => { if (document.getElementById('confirm-clear-text').value === 'Confirm') { await FretLogData.resetAllData(); location.reload(); } else document.getElementById('clear-confirm-error').classList.remove('hidden'); });
+    });
+</script>
+<script src="{{ url_for('static', filename='js/emoji-picker.js') }}"></script>
+<script>
+    // Initialize Emoji Pickers
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.FretLogEmojiPicker) {
+            FretLogEmojiPicker.attach('instrument-icon');
+            FretLogEmojiPicker.attach('category-icon');
+        }
     });
 </script>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>

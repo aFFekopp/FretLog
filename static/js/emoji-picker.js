@@ -133,6 +133,7 @@ class EmojiPicker {
 
         trigger.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (input.disabled) return;
             if (this.picker.classList.contains('active') && this.activeInput === input) {
                 this.hide();
             } else {

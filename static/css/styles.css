@@ -18,6 +18,7 @@
 :root {
   /* Primary Colors */
   --color-primary: #2E3A8C;
+  --color-primary-rgb: 46, 58, 140;
   --color-primary-hover: #4A5FD9;
   --color-secondary: #4A5FD9;
   --color-navy: #1A2254;
@@ -98,6 +99,7 @@
 /* Dark Mode Variables */
 [data-theme="dark"] {
   --color-primary: #4A5FD9;
+  --color-primary-rgb: 74, 95, 217;
   --color-primary-hover: #6B7FE8;
   --color-secondary: #2E3A8C;
   --color-navy: #E8EAFF;
@@ -945,8 +947,10 @@ a:hover {
 }
 
 /* Elevate active dropdowns above neighboring cards/items */
+/* Elevate active dropdowns above neighboring cards/items */
 .card:has(.dropdown.active),
-.library-list-item:has(.dropdown.active) {
+.library-list-item:has(.dropdown.active),
+.library-list-item.active-dropdown {
   z-index: 50;
 }
 
@@ -1027,7 +1031,8 @@ a:hover {
 
 .table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .table th,
@@ -1042,6 +1047,17 @@ a:hover {
   font-size: var(--font-size-small);
   color: var(--text-secondary);
   background: var(--bg-secondary);
+  border-bottom: none;
+}
+
+.table th:first-child {
+  border-top-left-radius: var(--radius-md);
+  border-bottom-left-radius: var(--radius-md);
+}
+
+.table th:last-child {
+  border-top-right-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
 }
 
 .table tbody tr:hover {
@@ -1405,7 +1421,9 @@ a:hover {
   text-align: center;
 }
 
-.text-right {
+.text-right,
+th.text-right,
+td.text-right {
   text-align: right;
 }
 
@@ -1469,6 +1487,10 @@ a:hover {
   justify-content: center;
 }
 
+.justify-end {
+  justify-content: flex-end;
+}
+
 .gap-sm {
   gap: var(--spacing-sm);
 }
@@ -1520,7 +1542,6 @@ a:hover {
     padding: var(--spacing-sm);
     padding-bottom: calc(80px + env(safe-area-inset-bottom));
     width: 100%;
-    overflow-x: hidden;
     box-sizing: border-box;
   }
 
@@ -2048,7 +2069,7 @@ a:hover {
   display: none;
   position: absolute;
   z-index: 2000;
-  width: 320px;
+  width: 380px;
   background: var(--bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -2095,12 +2116,12 @@ a:hover {
   display: flex;
   gap: 4px;
   overflow-x: auto;
-  scrollbar-width: none;
+  /* scrollbar-width: none; */
 }
 
-.emoji-picker-tabs::-webkit-scrollbar {
-  display: none;
-}
+/* .emoji-picker-tabs::-webkit-scrollbar {
+  display: block;
+} */
 
 .emoji-picker-tab {
   padding: 6px 10px;
@@ -2130,7 +2151,7 @@ a:hover {
   overflow-y: auto;
   padding: var(--spacing-sm);
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   gap: 4px;
 }
 
@@ -2196,5 +2217,13 @@ a:hover {
     min-height: 0 !important;
     display: inline-flex !important;
     align-items: center !important;
+  }
+
+  .emoji-picker-container {
+    width: 300px;
+  }
+
+  .emoji-picker-content {
+    grid-template-columns: repeat(6, 1fr);
   }
 }

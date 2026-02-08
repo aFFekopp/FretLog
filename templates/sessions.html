@@ -430,10 +430,32 @@
 
     function toggleItemMenu(e, btn) {
         e.stopPropagation();
-        const menu = btn.nextElementSibling;
-        document.querySelectorAll('.dropdown-menu.active').forEach(m => { if (m !== menu) m.classList.remove('active'); });
-        menu.parentElement.classList.toggle('active');
+        const menu = btn.parentElement; // The .dropdown div
+        const currentActive = menu.classList.contains('active');
+
+        // Close all other dropdowns
+        document.querySelectorAll('.dropdown.active').forEach(d => {
+            d.classList.remove('active');
+            const item = d.closest('.library-list-item');
+            if (item) item.classList.remove('active-dropdown');
+        });
+
+        // Toggle current
+        if (!currentActive) {
+            menu.classList.add('active');
+            const item = menu.closest('.library-list-item');
+            if (item) item.classList.add('active-dropdown');
+        }
     }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.dropdown.active').forEach(d => {
+            d.classList.remove('active');
+            const item = d.closest('.library-list-item');
+            if (item) item.classList.remove('active-dropdown');
+        });
+    });
 
     // Instrument hook for base.html
     window.onInstrumentChange = () => {
@@ -534,20 +556,22 @@
             return `
             <div class="library-list-item" style="cursor: pointer; padding-left: var(--spacing-md); padding-top: 10px; padding-bottom: 10px;" onclick="viewSession('${session.id}')">
                 <div class="item-info">
-                    <div class="flex items-center gap-sm mb-sm">
-                        <span class="font-bold text-primary">${formatTableDate(session.endTime || session.date)}</span>
-                        <span class="text-secondary" style="font-size: 0.85rem;">at ${formatTableTime(session.endTime || session.date)}</span>
-                    </div>
-                    <div class="flex items-center gap-sm">
-                        <span style="font-size: 0.9rem;">${instrument?.icon || '🎸'} ${instrument?.name || 'Unknown'}</span>
-                        <span class="badge badge-secondary" style="font-size: 0.7rem; padding: 1px 6px;">${itemCount} items</span>
-                        <span class="badge badge-${statusClass}" style="font-size: 0.7rem; padding: 1px 6px;">${statusLabel}</span>
-                        ${session.notes ? `
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
-                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                            </svg>
-                        ` : ''}
+                    <div class="flex items-center gap-md flex-wrap">
+                        <div class="flex items-center gap-sm">
+                            <span class="font-bold text-primary">${formatTableDate(session.endTime || session.date)}</span>
+                            <span class="text-secondary" style="font-size: 0.85rem;">at ${formatTableTime(session.endTime || session.date)}</span>
+                        </div>
+                        <div class="flex items-center gap-sm">
+                            <span style="font-size: 0.9rem;">${instrument?.icon || '🎸'} ${instrument?.name || 'Unknown'}</span>
+                            <span class="badge badge-secondary" style="font-size: 0.7rem; padding: 1px 6px;">${itemCount} items</span>
+                            <span class="badge badge-${statusClass}" style="font-size: 0.7rem; padding: 1px 6px;">${statusLabel}</span>
+                            ${session.notes ? `
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                </svg>
+                            ` : ''}
+                        </div>
                     </div>
                 </div>
                 <div class="time-column text-right">
