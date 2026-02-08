@@ -191,6 +191,8 @@
 html {
   font-size: 16px;
   scroll-behavior: smooth;
+  height: 100%;
+  /* Needed for body min-height */
 }
 
 body {
@@ -201,6 +203,10 @@ body {
   color: var(--text-primary);
   background-color: var(--bg-secondary);
   min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  /* Ensure body takes full height */
+  flex-direction: column;
 }
 
 h1,
@@ -246,7 +252,8 @@ a:hover {
 .app-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  flex: 1;
+  /* Grow to fill body */
 }
 
 .main-header {
@@ -387,11 +394,13 @@ a:hover {
 
 .main-content {
   margin-top: var(--header-height);
-  padding: var(--spacing-xl);
+  padding: var(--spacing-lg) var(--spacing-xl);
   max-width: var(--max-content-width);
   margin-left: auto;
   margin-right: auto;
   width: 100%;
+  flex: 1;
+  /* Pushes footer down */
 }
 
 /* ==========================================
@@ -1540,9 +1549,14 @@ td.text-right {
 
   .main-content {
     padding: var(--spacing-sm);
-    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    /* padding-bottom removed as footer handles spacing for nav */
+    padding-bottom: var(--spacing-sm);
     width: 100%;
     box-sizing: border-box;
+  }
+
+  .filter-card {
+    margin-bottom: var(--spacing-md) !important;
   }
 
   .card {
@@ -2225,5 +2239,49 @@ td.text-right {
 
   .emoji-picker-content {
     grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+/* App Footer */
+.app-footer {
+  width: 100%;
+  padding: 0;
+  /* border-top: 1px solid var(--color-border); */
+  background: transparent;
+  margin-top: auto;
+  z-index: 10;
+  text-align: center;
+}
+
+.footer-content {
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+}
+
+.footer-dot {
+  opacity: 0.5;
+}
+
+.github-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.github-link:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .app-footer {
+    padding-bottom: calc(var(--spacing-xl) + 40px);
   }
 }

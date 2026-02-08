@@ -41,6 +41,8 @@ The easiest way to run FretLog is using Docker Compose with the pre-built image.
        restart: unless-stopped
        ports:
          - "5000:5000"
+       environment:
+         - DATABASE_PATH=/app/data/fretlog.db
        volumes:
          - ./data:/app/data
    ```

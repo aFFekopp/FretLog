@@ -1,4 +1,5 @@
-const CACHE_NAME = 'fretlog-v0.3.3';
+importScripts('/version.js');
+const CACHE_NAME = 'fretlog-v' + APP_VERSION;
 const ASSETS_TO_CACHE = [
     '/',
     '/sessions',

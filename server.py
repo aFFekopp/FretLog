@@ -11,6 +11,15 @@ DATABASE = os.getenv('DATABASE_PATH', os.path.join('data', 'fretlog.db'))
 app = Flask(__name__)
 CORS(app)
 
+# Read version from file
+VERSION_FILE = os.path.join(os.path.dirname(__file__), 'VERSION')
+try:
+    with open(VERSION_FILE, 'r') as f:
+        APP_VERSION = f.read().strip()
+except Exception as e:
+    print(f"Warning: Could not read VERSION file: {e}")
+    APP_VERSION = '0.0.0'
+
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
@@ -126,10 +135,10 @@ def inject_user():
         # current_user is now a dummy object for template compatibility
         user = {'id': 'local-user', 'name': 'Musician'}
         
-        return dict(current_user=user, current_instrument=instrument)
+        return dict(current_user=user, current_instrument=instrument, APP_VERSION=APP_VERSION)
     except Exception as e:
         print(f"Error injecting user context: {e}")
-        return dict(current_user=None, current_instrument=None)
+        return dict(current_user=None, current_instrument=None, APP_VERSION=APP_VERSION)
 
 # ==========================================
 # Page Routes
@@ -157,6 +166,11 @@ def settings():
 @app.route('/static/<path:filename>')
 def serve_static_assets(filename):
     return send_from_directory('static', filename)
+
+@app.route('/version.js')
+def serve_version():
+    """Serve the application version as a global JS constant"""
+    return f"const APP_VERSION = '{APP_VERSION}';", 200, {'Content-Type': 'application/javascript'}
 
 @app.route('/<path:filename>')
 def serve_legacy_html(filename):

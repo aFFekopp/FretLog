@@ -7,7 +7,7 @@ const API_BASE = '/api';
 
 const FretLogData = {
     // App Version for cache busting
-    APP_VERSION: '0.3.3',
+    APP_VERSION: typeof APP_VERSION !== 'undefined' ? APP_VERSION : '0.0.0',
 
     // Local cache for sync operations (fallback)
     _cache: {

@@ -7,6 +7,9 @@
     <meta name="description" content="FretLog - {% block description %}Personal Practice Logger{% endblock %}">
     <title>{% block title %}{% endblock %} - FretLog</title>
 
+    <!-- Versioning -->
+    <script>const APP_VERSION = "{{ APP_VERSION }}";</script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -122,6 +125,18 @@
         <main class="main-content">
             {% block content %}{% endblock %}
         </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <span class="version-info">v{{ APP_VERSION }}</span>
+                <span class="footer-dot">•</span>
+                <a href="https://github.com/aFFekopp/FretLog" target="_blank" rel="noopener noreferrer"
+                    class="github-link">
+                    GitHub
+                </a>
+            </div>
+        </footer>
 
         <!-- Mobile Bottom Navigation -->
         <nav class="mobile-nav">
