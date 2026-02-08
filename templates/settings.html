@@ -11,23 +11,7 @@
     </div>
 </div>
 
-<div class="grid grid-2 gap-lg">
-    <!-- Profile Settings -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">Profile</h3>
-        </div>
-        <div class="form-group">
-            <label class="form-label">Name</label>
-            <input type="text" class="form-input" id="profile-name" placeholder="Your name">
-        </div>
-        <div class="form-group">
-            <label class="form-label">Email (optional)</label>
-            <input type="email" class="form-input" id="profile-email" placeholder="your@email.com">
-        </div>
-        <button class="btn btn-primary" id="save-profile-btn">Save Profile</button>
-    </div>
-
+<div class="grid grid-1 gap-lg">
     <!-- Theme Settings -->
     <div class="card">
         <div class="card-header">
@@ -274,9 +258,9 @@
 
     function renderInstruments() {
         const insts = FretLogData.getInstruments();
-        const user = FretLogData.getUser();
+        const currentInst = FretLogData.getCurrentInstrument();
         document.getElementById('instruments-list').innerHTML = insts.sort((a, b) => a.name.localeCompare(b.name)).map(i => {
-            const isDefault = user?.defaultInstrumentId === i.id;
+            const isDefault = currentInst?.id === i.id;
             return `
             <tr onclick="setDefaultInst('${i.id}')" style="cursor: pointer; ${isDefault ? 'background-color: rgba(var(--color-primary-rgb), 0.1); border-left: 3px solid var(--color-primary);' : ''}">
                 <td style="font-size: 1.25rem;">${i.icon}</td>
@@ -320,8 +304,8 @@
     }
 
     async function setDefaultInst(id) {
-        const u = FretLogData.getUser(); u.defaultInstrumentId = id; await FretLogData.saveUser(u);
-        renderInstruments(); updateUserInfo();
+        await FretLogData.saveDefaultInstrument(id);
+        renderInstruments(); updateUserDisplay();
     }
 
     function editInst(id) {
@@ -377,7 +361,7 @@
                 let data;
                 try { data = JSON.parse(ev.target.result); } catch (jsonErr) { throw new Error('File contains invalid JSON data.'); }
                 if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid data format.');
-                const validKeys = ['users', 'library_items', 'sessions', 'artists', 'instruments', 'categories'];
+                const validKeys = ['library_items', 'sessions', 'artists', 'instruments', 'categories'];
                 if (!validKeys.some(key => key in data)) throw new Error('Invalid FretLog backup file.');
                 pendingImport = data;
                 const list = document.getElementById('import-summary-list');
@@ -440,13 +424,8 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
         await FretLogData.init(); renderInstruments(); renderCategories();
-        const u = FretLogData.getUser(); document.getElementById('profile-name').value = u?.name || ''; document.getElementById('profile-email').value = u?.email || '';
         const th = FretLogData.getTheme(); document.getElementById('theme-light').checked = th === 'light'; document.getElementById('theme-dark').checked = th === 'dark';
 
-        document.getElementById('save-profile-btn').addEventListener('click', async () => {
-            const u = FretLogData.getUser(); u.name = document.getElementById('profile-name').value.trim(); u.email = document.getElementById('profile-email').value.trim();
-            await FretLogData.saveUser(u); updateUserInfo(); showNotification('Profile saved!');
-        });
         document.querySelectorAll('input[name="theme-radio"]').forEach(r => r.addEventListener('change', () => FretLogData.setTheme(r.value)));
         document.getElementById('add-instrument-btn').addEventListener('click', () => { document.getElementById('instrument-modal-title').textContent = 'Add Instrument'; document.getElementById('edit-instrument-id').value = ''; document.getElementById('instrument-icon').value = '🎸'; document.getElementById('instrument-name').value = ''; openModal('instrument-modal'); });
         document.getElementById('save-instrument-btn').addEventListener('click', saveInst);

@@ -93,13 +93,11 @@ function updateUserInfo() {
         } catch (e) { console.warn('Failed to parse cached instruments', e); }
     }
 
-    const userName = document.getElementById('user-name');
     const userInstrument = document.getElementById('user-instrument');
     const userAvatar = document.getElementById('user-avatar');
 
-    if (userName) userName.textContent = user?.name || 'Musician';
     if (userInstrument) userInstrument.textContent = instrument?.name || 'Guitar';
-    if (userAvatar) userAvatar.textContent = (user?.name || 'M').charAt(0).toUpperCase();
+    if (userAvatar && instrument) userAvatar.textContent = instrument.icon || '🎸';
 }
 
 // ==========================================

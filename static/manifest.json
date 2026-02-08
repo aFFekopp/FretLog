@@ -1,0 +1,29 @@
+{
+  "name": "FretLog - Music Practice Dashboard",
+  "short_name": "FretLog",
+  "description": "Log your music practice sessions, track progress, and manage your repertoire.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/static/img/fretlog_icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/img/fretlog_icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "music",
+    "productivity",
+    "utilities"
+  ]
+}

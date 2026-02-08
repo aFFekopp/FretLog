@@ -6,6 +6,9 @@
 const API_BASE = '/api';
 
 const FretLogData = {
+    // App Version for cache busting
+    APP_VERSION: '0.3.3',
+
     // Local cache for sync operations (fallback)
     _cache: {
         user: null,
@@ -119,7 +122,7 @@ const FretLogData = {
     },
 
     _normalizeUser(u) {
-        if (!u) return null;
+        if (!u) return { id: 'local-user', name: 'Musician' };
         const norm = { ...u };
         if (u.default_instrument_id) norm.defaultInstrumentId = u.default_instrument_id;
         return norm;
@@ -128,6 +131,14 @@ const FretLogData = {
     // Initialize - load initial data from API (single request)
     _initPromise: null,
     async init() {
+        // Version check for cache busting
+        const storedVersion = localStorage.getItem('fretlog_version');
+        if (storedVersion !== this.APP_VERSION) {
+            console.log(`Version mismatch (stored: ${storedVersion}, app: ${this.APP_VERSION}). Clearing cache...`);
+            this._clearSiteCache();
+            localStorage.setItem('fretlog_version', this.APP_VERSION);
+        }
+
         // Initial load from local cache for instant UI
         this.loadFromCache();
 
@@ -139,6 +150,15 @@ const FretLogData = {
         // Create and store the init promise
         this._initPromise = this._doInit();
         return this._initPromise;
+    },
+
+    // Clear all local storage cache
+    _clearSiteCache() {
+        const keys = [
+            'user', 'categories', 'instruments', 'artists',
+            'library', 'sessions', 'currentSession', 'theme'
+        ];
+        keys.forEach(key => localStorage.removeItem(`fretlog_${key}_cache`));
     },
 
     // Public method to load cache (idempotent-ish)
@@ -257,26 +277,32 @@ const FretLogData = {
     },
 
     // ==========================================
-    // User Methods
+    // Settings Methods
     // ==========================================
     getUser() {
-        return this._cache.user;
+        return this._cache.user || { id: 'local-user', name: 'Musician' };
     },
 
     async saveUser(user) {
-        const result = await this._fetch('/user', {
+        // No-op, users are no longer managed
+        return this.getUser();
+    },
+
+    async saveDefaultInstrument(instrumentId) {
+        const result = await this._fetch('/settings', {
             method: 'POST',
-            body: user
+            body: { key: 'default_instrument_id', value: instrumentId }
         });
-        this._cache.user = this._normalizeUser(result);
-        localStorage.setItem('fretlog_user_cache', JSON.stringify(this._cache.user));
-        return this._cache.user;
+        this._cache.user.defaultInstrumentId = instrumentId;
+        this._updateCache('user', this._cache.user);
+        return instrumentId;
     },
 
     getCurrentInstrument() {
         const user = this.getUser();
-        if (!user || !user.defaultInstrumentId) return null;
-        return this.getInstruments().find(i => i.id === user.defaultInstrumentId);
+        // The defaultInstrumentId is now stored in the user cache object for simplicity in JS
+        const instId = this._cache.user?.defaultInstrumentId || 'inst-guitar';
+        return this.getInstruments().find(i => i.id === instId);
     },
 
     // ==========================================

@@ -12,6 +12,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/fretlog_icon.png') }}">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FretLog">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/fretlog_icon.png') }}">
+    <meta name="theme-color" content="#4f46e5">
 
     <script>
         (function () {
@@ -97,22 +103,16 @@
                             d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                     </svg>
                 </a>
-                <div class="user-profile dropdown" id="user-dropdown">
-                    <div class="user-avatar" id="user-avatar">{{ (current_user.name or 'Musician')[0] | upper }}</div>
+                <div class="user-profile instrument-selector" id="change-instrument-btn" title="Change Instrument"
+                    onclick="openModal('change-instrument-modal')">
+                    <div class="user-avatar" id="user-avatar"
+                        style="font-size: 1.2rem; display: flex; align-items: center; justify-content: center;">{{
+                        current_instrument.icon or '🎸' }}</div>
                     <div class="user-info">
-                        <span class="user-name" id="user-name">{{ current_user.name or 'Musician' }}</span>
-                        <span class="user-instrument" id="user-instrument">{{ current_instrument.name or 'Guitar' if
-                            current_instrument else 'Select Instrument' }}</span>
-                    </div>
-                    <div class="dropdown-menu">
-                        <div class="dropdown-item" onclick="openModal('change-instrument-modal')">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
-                            Change Instrument
-                        </div>
+                        <span class="user-instrument" id="user-instrument"
+                            style="font-weight: var(--font-weight-bold);">{{ current_instrument.name or 'Guitar'
+                            }}</span>
+                        <span class="text-secondary" style="font-size: 0.7rem;">Change</span>
                     </div>
                 </div>
             </div>
@@ -224,15 +224,14 @@
                     `<option value="${i.id}">${i.icon} ${i.name}</option>`
                 ).join('');
 
-                const user = FretLogData.getUser();
-                if (user && user.defaultInstrumentId) {
-                    instrumentSelect.value = user.defaultInstrumentId;
+                const currentInst = FretLogData.getCurrentInstrument();
+                if (currentInst) {
+                    instrumentSelect.value = currentInst.id;
                 }
 
                 confirmBtn.onclick = async () => {
-                    const user = FretLogData.getUser();
-                    user.defaultInstrumentId = instrumentSelect.value;
-                    await FretLogData.saveUser(user);
+                    const instrumentId = instrumentSelect.value;
+                    await FretLogData.saveDefaultInstrument(instrumentId);
                     updateUserDisplay();
                     closeModal('change-instrument-modal');
                     // Reload if page logic depends on instrument
@@ -243,6 +242,21 @@
     </script>
 
     {% block scripts %}{% endblock %}
+
+    <script>
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
 </body>
 
 </html>

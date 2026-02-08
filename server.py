@@ -40,9 +40,7 @@ def init_db():
     cursor = conn.cursor()
     
     # Tables
-    cursor.execute('''CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY, name TEXT, email TEXT, avatar TEXT, 
-        default_instrument_id TEXT, created_at TEXT)''')
+    cursor.execute('DROP TABLE IF EXISTS users')
     
     cursor.execute('''CREATE TABLE IF NOT EXISTS categories (
         id TEXT PRIMARY KEY, name TEXT, type TEXT, icon TEXT, color TEXT)''')
@@ -69,7 +67,7 @@ def init_db():
         key TEXT PRIMARY KEY, value TEXT)''')
     
     # Default data if empty
-    cursor.execute('SELECT count(*) FROM users')
+    cursor.execute('SELECT count(*) FROM instruments')
     if cursor.fetchone()[0] == 0:
         init_default_data(conn)
         
@@ -78,9 +76,6 @@ def init_db():
 
 def init_default_data(conn):
     cursor = conn.cursor()
-    user_id = generate_id()
-    cursor.execute('INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)', 
-                   (user_id, 'Musician', datetime.now().isoformat()))
     
     # Default Categories
     cats = [
@@ -105,8 +100,8 @@ def init_default_data(conn):
         cursor.execute('INSERT INTO instruments (id, name, icon) VALUES (?, ?, ?)',
                        (inst_id, name, icon))
     
-    # Set default instrument for user
-    cursor.execute('UPDATE users SET default_instrument_id=? WHERE id=?', ('inst-guitar', user_id))
+    # Set default instrument
+    cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('default_instrument_id', ?)", ('inst-guitar',))
     
     conn.commit()
 
@@ -116,18 +111,20 @@ def inject_user():
         conn = get_db()
         cursor = conn.cursor()
         
-        # Get User
-        cursor.execute('SELECT * FROM users LIMIT 1')
-        user_row = cursor.fetchone()
-        user = dict(user_row) if user_row else None
+        # Get Current Instrument ID from settings
+        cursor.execute("SELECT value FROM settings WHERE key='default_instrument_id'")
+        row = cursor.fetchone()
+        instrument_id = row[0] if row else 'inst-guitar'
         
         # Get Current Instrument
         instrument = None
-        if user and user.get('default_instrument_id'):
-            cursor.execute('SELECT * FROM instruments WHERE id=?', (user['default_instrument_id'],))
-            inst_row = cursor.fetchone()
-            if inst_row:
-                instrument = dict(inst_row)
+        cursor.execute('SELECT * FROM instruments WHERE id=?', (instrument_id,))
+        inst_row = cursor.fetchone()
+        if inst_row:
+            instrument = dict(inst_row)
+        
+        # current_user is now a dummy object for template compatibility
+        user = {'id': 'local-user', 'name': 'Musician'}
         
         return dict(current_user=user, current_instrument=instrument)
     except Exception as e:
@@ -180,9 +177,11 @@ def get_init_data():
     conn = get_db()
     cursor = conn.cursor()
     
-    # User
-    cursor.execute('SELECT * FROM users LIMIT 1')
-    user = dict_from_row(cursor.fetchone())
+    # User (Dummy for compatibility)
+    user = {'id': 'local-user', 'name': 'Musician'}
+    cursor.execute("SELECT value FROM settings WHERE key='default_instrument_id'")
+    inst_row = cursor.fetchone()
+    user['default_instrument_id'] = inst_row[0] if inst_row else 'inst-guitar'
     
     # Categories
     cursor.execute('SELECT * FROM categories')
@@ -239,34 +238,13 @@ def get_init_data():
 # ==========================================
 @app.route('/api/user', methods=['GET'])
 def get_user():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM users LIMIT 1')
-    user = dict_from_row(cursor.fetchone())
-    conn.close()
+    user = {'id': 'local-user', 'name': 'Musician'}
     return jsonify(user)
 
 @app.route('/api/user', methods=['POST', 'PUT'])
 def update_user():
-    data = request.json
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    cursor.execute('SELECT id FROM users LIMIT 1')
-    user = cursor.fetchone()
-    
-    if user:
-        cursor.execute('''
-            UPDATE users SET name=?, email=?, avatar=?, default_instrument_id=?
-            WHERE id=?
-        ''', (data.get('name'), data.get('email'), data.get('avatar'), 
-              data.get('defaultInstrumentId'), user[0]))
-    
-    conn.commit()
-    cursor.execute('SELECT * FROM users WHERE id=?', (user[0],))
-    updated_user = dict_from_row(cursor.fetchone())
-    conn.close()
-    return jsonify(updated_user)
+    # Users table is gone, just return dummy
+    return jsonify({'id': 'local-user', 'name': 'Musician'})
 
 # ==========================================
 # Categories API
@@ -880,6 +858,25 @@ def set_theme():
     conn.close()
     return jsonify({'theme': data.get('theme')})
 
+@app.route('/api/settings', methods=['POST'])
+def update_setting():
+    data = request.json
+    key = data.get('key')
+    value = data.get('value')
+    
+    if not key:
+        return jsonify({'error': 'Missing key'}), 400
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)
+    ''', (key, value))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'status': 'success', 'key': key, 'value': value})
+
 # ==========================================
 # Statistics API
 # ==========================================
@@ -931,7 +928,7 @@ def export_data():
     conn = get_db()
     cursor = conn.cursor()
     
-    tables = ['users', 'categories', 'instruments', 'artists', 'library_items', 'sessions', 'session_items', 'settings']
+    tables = ['categories', 'instruments', 'artists', 'library_items', 'sessions', 'session_items', 'settings']
     export = {}
     
     for table in tables:
@@ -1017,18 +1014,12 @@ def import_data():
                 cursor.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
                                (setting['key'], setting['value']))
         
-        # 8. User (optional, might want to keep current)
-        if 'users' in data and data['users']:
-            user = data['users'][0]
-            cursor.execute('''
-                INSERT OR REPLACE INTO users (id, name, email, avatar, default_instrument_id, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (user['id'], user['name'], user.get('email', ''), user.get('avatar'), 
-                  user.get('default_instrument_id'), user['created_at']))
+        # 8. Table 'users' is no longer imported
         
         conn.commit()
         return jsonify({'status': 'success', 'message': 'Data imported successfully'})
     except Exception as e:
+        print(f"Error importing data: {e}")
         conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
@@ -1041,15 +1032,15 @@ def clear_data():
     cursor = conn.cursor()
     
     try:
-        # Preserve user info
-        cursor.execute('SELECT name, email, default_instrument_id FROM users LIMIT 1')
-        user_row = cursor.fetchone()
-        preserved_user = dict(user_row) if user_row else {'name': 'Musician', 'email': '', 'default_instrument_id': None}
-        
         # Preserve theme
         cursor.execute("SELECT value FROM settings WHERE key='theme'")
         theme_row = cursor.fetchone()
         preserved_theme = theme_row[0] if theme_row else 'dark'
+        
+        # Preserve instrument
+        cursor.execute("SELECT value FROM settings WHERE key='default_instrument_id'")
+        inst_row = cursor.fetchone()
+        preserved_inst = inst_row[0] if inst_row else 'inst-guitar'
         
         # Delete everything
         cursor.execute('DELETE FROM session_items')
@@ -1059,25 +1050,17 @@ def clear_data():
         cursor.execute('DELETE FROM categories')
         cursor.execute('DELETE FROM instruments')
         cursor.execute('DELETE FROM settings')
-        cursor.execute('DELETE FROM users')
         
         conn.commit()
         
         # Re-initialize with defaults
         init_default_data(conn)
         
-        # Restore preserved data
-        # Update user (id will be newly generated by init_default_data if we deleted all, but init_db usually handles this)
-        # Actually init_default_data adds a NEW user if count is 0. 
-        # Let's check how many users now
-        cursor.execute('SELECT id FROM users LIMIT 1')
-        new_user = cursor.fetchone()
-        if new_user:
-            cursor.execute('UPDATE users SET name=?, email=?, default_instrument_id=? WHERE id=?',
-                           (preserved_user['name'], preserved_user['email'], preserved_user['default_instrument_id'], new_user[0]))
-        
         # Restore theme
         cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('theme', ?)", (preserved_theme,))
+        
+        # Restore instrument
+        cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('default_instrument_id', ?)", (preserved_inst,))
         
         conn.commit()
         return jsonify({'status': 'success', 'message': 'All data cleared except defaults and profile'})
@@ -1086,6 +1069,14 @@ def clear_data():
         return jsonify({'error': str(e)}), 500
     finally:
         conn.close()
+
+@app.route('/manifest.json')
+def serve_manifest():
+    return send_from_directory('static', 'manifest.json')
+
+@app.route('/sw.js')
+def serve_sw():
+    return send_from_directory('static', 'sw.js')
 
 if __name__ == '__main__':
     with app.app_context():

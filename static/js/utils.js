@@ -42,17 +42,14 @@ function formatHours(ms) {
 // User Display
 function updateUserDisplay() {
     try {
-        const user = FretLogData.getUser();
         const instrument = FretLogData.getCurrentInstrument();
 
-        const nameElems = document.querySelectorAll('.user-name');
         const instElems = document.querySelectorAll('.user-instrument');
         const avatarElems = document.querySelectorAll('.user-avatar');
 
-        nameElems.forEach(el => el.textContent = user?.name || 'Musician');
         instElems.forEach(el => el.textContent = instrument?.name || 'Guitar');
         avatarElems.forEach(el => {
-            el.textContent = (user?.name || 'M').charAt(0).toUpperCase();
+            el.textContent = instrument?.icon || '🎸';
         });
     } catch (e) {
         console.warn('Update user display error', e);

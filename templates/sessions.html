@@ -449,7 +449,10 @@
     }
 
     // Close dropdowns when clicking outside
-    document.addEventListener('click', () => {
+    document.addEventListener('click', (e) => {
+        // Don't close if clicking user profile dropdown
+        if (e.target.closest('#user-dropdown')) return;
+
         document.querySelectorAll('.dropdown.active').forEach(d => {
             d.classList.remove('active');
             const item = d.closest('.library-list-item');
