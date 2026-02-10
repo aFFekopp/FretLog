@@ -272,7 +272,8 @@
         const dailyTotals = FretLogData.getDailyTotals();
 
         if (period === 'week') {
-            const weekStart = new Date(now); weekStart.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
+            const weekStart = new Date(now);
+            weekStart.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
             weekStart.setHours(0, 0, 0, 0);
             for (let i = 0; i < 7; i++) {
                 const d = new Date(weekStart); d.setDate(weekStart.getDate() + i);
@@ -280,20 +281,33 @@
                 data.push((dailyTotals[FretLogData.formatDateKey(d)] || 0) / 60000);
             }
         } else if (period === 'month') {
+            const baseDate = new Date(now);
+            baseDate.setHours(12, 0, 0, 0); // Mid-day for safe date math
             for (let i = 29; i >= 0; i--) {
-                const d = new Date(now); d.setDate(now.getDate() - i);
-                labels.push(d.getDate().toString());
+                const d = new Date(baseDate);
+                d.setDate(baseDate.getDate() - i);
+                const dayNum = d.getDate();
+                const monthName = d.toLocaleDateString('en-US', { month: 'short' });
+                // Label with month name on the 1st day or the first day of the window
+                labels.push(dayNum === 1 || i === 29 ? `${monthName} ${dayNum}` : dayNum.toString());
                 data.push((dailyTotals[FretLogData.formatDateKey(d)] || 0) / 60000);
             }
         } else if (period === 'year') {
-            for (let i = 51; i >= 0; i--) {
-                const ws = new Date(now); ws.setDate(now.getDate() - (i * 7));
-                let total = 0;
-                for (let j = 0; j < 7; j++) {
-                    const d = new Date(ws); d.setDate(ws.getDate() + j);
-                    total += dailyTotals[FretLogData.formatDateKey(d)] || 0;
+            // Last 12 months
+            for (let i = 11; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const monthKey = d.toLocaleDateString('en-US', { month: 'short' });
+                labels.push(monthKey);
+
+                let monthTotal = 0;
+                const m = d.getMonth();
+                const y = d.getFullYear();
+                const lastDay = new Date(y, m + 1, 0).getDate();
+                for (let day = 1; day <= lastDay; day++) {
+                    const check = new Date(y, m, day);
+                    monthTotal += dailyTotals[FretLogData.formatDateKey(check)] || 0;
                 }
-                labels.push(`W${52 - i}`); data.push(total / 60000);
+                data.push(monthTotal / 60000);
             }
         }
 
@@ -310,7 +324,17 @@
                 plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${Math.round(c.raw)}m` } } },
                 scales: {
                     y: { beginAtZero: true, grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }, ticks: { color: isDark ? '#9CA3AF' : '#4A4A4A' } },
-                    x: { grid: { display: false }, ticks: { color: isDark ? '#9CA3AF' : '#4A4A4A', autoSkip: true, maxTicksLimit: period === 'year' ? 12 : 10 } }
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            color: isDark ? '#9CA3AF' : '#4A4A4A',
+                            autoSkip: true,
+                            maxTicksLimit: period === 'month' ? 15 : 12,
+                            align: 'center',
+                            maxRotation: 0,
+                            font: { size: 10 }
+                        }
+                    }
                 }
             }
         });
@@ -352,10 +376,13 @@
         }
 
         labelsContainer.innerHTML = '<span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>';
-        let monthsH = '<div class="heatmap-months-inner">';
+        let monthsH = '<div class="heatmap-months-inner" style="display: flex; gap: 2px;">';
         monthPos.forEach((p, i) => {
             const span = monthPos[i + 1] ? monthPos[i + 1].idx - p.idx : weeks.length - p.idx;
-            monthsH += `<span style="flex:${span}">${p.name}</span>`;
+            // Column width is 12px + 2px gap.
+            // Width should be (span * 14) - 2 (to account for the gap after the last column in span)
+            const width = (span * 14) - 2;
+            monthsH += `<span style="width:${width}px; flex: none; text-align: left;">${p.name}</span>`;
         });
         monthsContainer.innerHTML = monthsH + '</div>';
 

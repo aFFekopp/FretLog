@@ -451,14 +451,28 @@ def get_library():
 @app.route('/api/library', methods=['POST'])
 def add_library_item():
     data = request.json
+    name = data.get('name')
+    category_id = data.get('categoryId')
+    artist_id = data.get('artistId')
+    
     conn = get_db()
     cursor = conn.cursor()
     
+    # Check for duplicates (case-insensitive)
+    cursor.execute('''
+        SELECT id FROM library_items 
+        WHERE LOWER(name) = LOWER(?) AND category_id = ? AND (artist_id = ? OR (artist_id IS NULL AND ? IS NULL))
+    ''', (name, category_id, artist_id, artist_id))
+    
+    if cursor.fetchone():
+        conn.close()
+        return jsonify({'error': 'An item with this name already exists in this category.'}), 409
+
     item_id = generate_id()
     cursor.execute('''
         INSERT INTO library_items (id, name, category_id, artist_id, star_rating, notes, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (item_id, data.get('name'), data.get('categoryId'), data.get('artistId'),
+    ''', (item_id, name, category_id, artist_id,
           data.get('starRating', 0), data.get('notes', ''), datetime.now().isoformat()))
     
     conn.commit()
@@ -472,6 +486,28 @@ def update_library_item(item_id):
     data = request.json
     conn = get_db()
     cursor = conn.cursor()
+
+    # Check for duplicates if name/category/artist are being changed
+    if any(k in data for k in ['name', 'categoryId', 'artistId']):
+        cursor.execute('SELECT name, category_id, artist_id FROM library_items WHERE id=?', (item_id,))
+        current = cursor.fetchone()
+        if not current:
+            conn.close()
+            return jsonify({'error': 'Item not found'}), 404
+        
+        new_name = data.get('name', current[0])
+        new_cat = data.get('categoryId', current[1])
+        new_art = data.get('artistId', current[2]) if 'artistId' in data else current[2]
+
+        cursor.execute('''
+            SELECT id FROM library_items 
+            WHERE LOWER(name) = LOWER(?) AND category_id = ? AND (artist_id = ? OR (artist_id IS NULL AND ? IS NULL))
+            AND id != ?
+        ''', (new_name, new_cat, new_art, new_art, item_id))
+        
+        if cursor.fetchone():
+            conn.close()
+            return jsonify({'error': 'An item with this name already exists in this category.'}), 409
     
     # Map frontend camelCase to backend snake_case
     field_map = {

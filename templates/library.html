@@ -357,6 +357,8 @@
                 <label class="form-label" id="name-label">Name *</label>
                 <input type="text" class="form-input" id="item-name" placeholder="Enter name...">
                 <span class="form-error hidden" id="name-error">Name is required</span>
+                <span class="form-error hidden" id="duplicate-error">This item already exists in the selected
+                    category</span>
             </div>
             <div class="form-group">
                 <label class="form-label">Progress Rating</label>
@@ -737,11 +739,43 @@
 
     async function saveItem() {
         const id = document.getElementById('edit-item-id').value;
-        const name = document.getElementById('item-name').value.trim();
-        if (!name) return;
-        const data = { categoryId: document.getElementById('item-category').value, artistId: document.getElementById('item-artist').value || null, name, starRating: selectedRating };
-        if (id) await FretLogData.updateLibraryItem(id, data); else await FretLogData.addLibraryItem(data);
-        closeModal('item-modal'); filterItems(!!id);
+        const nameInput = document.getElementById('item-name');
+        const name = nameInput.value.trim();
+        const nameError = document.getElementById('name-error');
+        const dupError = document.getElementById('duplicate-error');
+
+        // Reset errors
+        nameError.classList.add('hidden');
+        dupError.classList.add('hidden');
+
+        if (!name) {
+            nameError.classList.remove('hidden');
+            return;
+        }
+
+        const data = {
+            categoryId: document.getElementById('item-category').value,
+            artistId: document.getElementById('item-artist').value || null,
+            name,
+            starRating: selectedRating
+        };
+
+        try {
+            if (id) {
+                await FretLogData.updateLibraryItem(id, data);
+            } else {
+                await FretLogData.addLibraryItem(data);
+            }
+            closeModal('item-modal');
+            filterItems(!!id);
+        } catch (error) {
+            if (error.message.includes('409')) {
+                dupError.classList.remove('hidden');
+            } else {
+                console.error('Failed to save library item:', error);
+                alert('An error occurred while saving. Please try again.');
+            }
+        }
     }
 
     function editItem(id) { const item = FretLogData.getLibraryItems().find(i => i.id === id); if (item) openItemModal(item); }

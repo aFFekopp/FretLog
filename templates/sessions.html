@@ -388,9 +388,9 @@
     // Sessions Page Logic
     // ==========================================
 
-    let currentPage = 1;
+    window.currentPage = 1;
     const itemsPerPage = 10;
-    let filteredSessions = [];
+    window.filteredSessions = [];
     let tempSessionItems = [];
     let viewingSessionId = null;
     let deletingSessionId = null;
@@ -477,6 +477,7 @@
 
     // Filter and sort sessions
     function filterSessions() {
+        window.currentPage = 1;
         let sessions = [...FretLogData.getSessions()];
 
         // Add current session if valid
@@ -520,7 +521,7 @@
 
         sessions.sort((a, b) => new Date(b.endTime || b.date) - new Date(a.endTime || a.date));
 
-        filteredSessions = sessions;
+        window.filteredSessions = sessions;
         renderSessions();
     }
 
@@ -530,7 +531,7 @@
         const emptyState = document.getElementById('no-sessions');
         const pagination = document.getElementById('pagination');
 
-        if (filteredSessions.length === 0) {
+        if (window.filteredSessions.length === 0) {
             container.classList.add('hidden');
             emptyState.classList.remove('hidden');
             pagination.classList.add('hidden');
@@ -540,10 +541,10 @@
         container.classList.remove('hidden');
         emptyState.classList.add('hidden');
 
-        const totalPages = Math.ceil(filteredSessions.length / itemsPerPage);
-        const start = (currentPage - 1) * itemsPerPage;
+        const totalPages = Math.ceil(window.filteredSessions.length / itemsPerPage);
+        const start = (window.currentPage - 1) * itemsPerPage;
         const end = start + itemsPerPage;
-        const paginated = filteredSessions.slice(start, end);
+        const paginated = window.filteredSessions.slice(start, end);
 
         const instruments = FretLogData.getInstruments();
 
@@ -611,11 +612,11 @@
             </div>`;
         }).join('');
 
-        if (filteredSessions.length > itemsPerPage) {
+        if (window.filteredSessions.length > itemsPerPage) {
             pagination.classList.remove('hidden');
-            document.getElementById('pagination-info').textContent = `Showing ${start + 1}-${Math.min(end, filteredSessions.length)} of ${filteredSessions.length}`;
-            document.getElementById('prev-page').disabled = currentPage === 1;
-            document.getElementById('next-page').disabled = currentPage === totalPages;
+            document.getElementById('pagination-info').textContent = `Showing ${start + 1}-${Math.min(end, window.filteredSessions.length)} of ${window.filteredSessions.length}`;
+            document.getElementById('prev-page').disabled = window.currentPage === 1;
+            document.getElementById('next-page').disabled = window.currentPage === totalPages;
         } else {
             pagination.classList.add('hidden');
         }
@@ -746,6 +747,9 @@
         const existingIds = new Set(tempSessionItems.map(i => i.libraryItemId || i.library_item_id));
         items = items.filter(i => !existingIds.has(i.id));
 
+        // Sort items alphabetically
+        items.sort((a, b) => a.name.localeCompare(b.name));
+
         document.getElementById('item-select').innerHTML = items.length ?
             '<option value="">Select...</option>' + items.map(i => `<option value="${i.id}">${i.name}</option>`).join('') :
             '<option value="">No items</option>';
@@ -808,6 +812,24 @@
         await render();
         await initPromise;
         await render();
+
+        // Pagination listeners
+        document.getElementById('prev-page').addEventListener('click', () => {
+            if (window.currentPage > 1) {
+                window.currentPage--;
+                renderSessions();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+
+        document.getElementById('next-page').addEventListener('click', () => {
+            const totalPages = Math.ceil(window.filteredSessions.length / itemsPerPage);
+            if (window.currentPage < totalPages) {
+                window.currentPage++;
+                renderSessions();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
 
         flatpickr('#filter-date-start', { altInput: true, altFormat: 'M j, Y', onChange: filterSessions });
         flatpickr('#filter-date-end', { altInput: true, altFormat: 'M j, Y', onChange: filterSessions });
