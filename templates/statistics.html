@@ -65,6 +65,7 @@
         display: flex;
         gap: 2px;
         width: 100%;
+        box-sizing: border-box;
     }
 
     .heatmap-months span,
@@ -376,13 +377,12 @@
         }
 
         labelsContainer.innerHTML = '<span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>';
-        let monthsH = '<div class="heatmap-months-inner" style="display: flex; gap: 2px;">';
+        let monthsH = '<div class="heatmap-months-inner">';
         monthPos.forEach((p, i) => {
             const span = monthPos[i + 1] ? monthPos[i + 1].idx - p.idx : weeks.length - p.idx;
-            // Column width is 12px + 2px gap.
-            // Width should be (span * 14) - 2 (to account for the gap after the last column in span)
-            const width = (span * 14) - 2;
-            monthsH += `<span style="width:${width}px; flex: none; text-align: left;">${p.name}</span>`;
+            // Use flex proportional to the number of week columns this month spans,
+            // matching the fluid flex:1 layout of .heatmap-week columns.
+            monthsH += `<span style="flex: ${span}; min-width: 0; overflow: hidden; text-align: left;">${p.name}</span>`;
         });
         monthsContainer.innerHTML = monthsH + '</div>';
 

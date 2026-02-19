@@ -334,6 +334,9 @@ function startSessionTimer() {
     });
 }
 
+// Tracks which item is in custom-time edit mode
+let editingTimeItemId = null;
+
 function updateSessionItemsList() {
     const session = FretLogData.getCurrentSession();
     const list = document.getElementById('session-items-list');
@@ -356,6 +359,10 @@ function updateSessionItemsList() {
         const category = categories.find(c => c.id === (item.categoryId || item.category_id));
         const isActive = activeItemId === item.id;
         const timeSpent = item.timeSpent || item.time_spent || 0;
+        const isEditing = editingTimeItemId === item.id;
+        const totalMinutes = Math.floor(timeSpent / 60000);
+        const currentHours = Math.floor(totalMinutes / 60);
+        const currentMins = totalMinutes % 60;
 
         // Find rating from library
         const libItem = libraryItems.find(li => li.id === (item.libraryItemId || item.library_item_id));
@@ -367,29 +374,79 @@ function updateSessionItemsList() {
             starsHtml += `<span class="star ${i <= rating ? 'filled' : ''}" data-rating="${i}">★</span>`;
         }
 
+        // Time cell: either live display or inline edit input
+        const inputStyle = `width: 44px; padding: 4px 6px; text-align: center; font-size: 0.85rem;
+            -moz-appearance: textfield;`;
+        const timeCell = isEditing
+            ? `<div class="flex items-center gap-sm" style="margin-left: auto; margin-right: var(--spacing-sm);">
+                <input type="number" id="custom-time-h-${item.id}" class="form-input custom-time-no-spin"
+                    style="${inputStyle}"
+                    value="${currentHours}" min="0" max="23" placeholder="h"
+                    onkeydown="if(event.key==='Enter') confirmCustomTime('${item.id}')"
+                    onclick="event.stopPropagation()"
+                >
+                <span class="text-secondary" style="font-size:0.75rem;">h</span>
+                <input type="number" id="custom-time-m-${item.id}" class="form-input custom-time-no-spin"
+                    style="${inputStyle}"
+                    value="${currentMins}" min="0" max="59" placeholder="m"
+                    onkeydown="if(event.key==='Enter') confirmCustomTime('${item.id}')"
+                    onclick="event.stopPropagation()"
+                >
+                <span class="text-secondary" style="font-size:0.75rem;">m</span>
+                <button class="btn btn-primary btn-sm" style="padding: 3px 8px;"
+                    onclick="confirmCustomTime('${item.id}')" title="Save time">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </button>
+                <button class="btn btn-ghost btn-sm" style="padding: 3px 6px;"
+                    onclick="cancelCustomTime()" title="Cancel">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+               </div>`
+            : `<div class="flex items-center gap-sm" style="margin-left: auto; margin-right: var(--spacing-sm);">
+                <span class="practice-item-time" id="item-time-${item.id}">${FretLogTimer.formatDuration(timeSpent)}</span>
+                <button class="btn btn-ghost btn-sm" title="Set custom time"
+                    style="padding: 2px 4px; opacity: 0.5;"
+                    onclick="setCustomItemTime('${item.id}')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                </button>
+               </div>`;
+
         return `
             <li class="practice-list-item practice-item ${isActive ? 'active' : ''}" data-item-id="${item.id}">
                 <div class="practice-item-actions" style="margin-right: var(--spacing-sm); width: 70px; flex-shrink: 0; justify-content: center;">
-                    ${isActive ?
-                `<button class="btn btn-secondary btn-sm" onclick="pauseItem('${item.id}')" style="width: 100%;">Pause</button>` :
-                `<button class="btn btn-primary btn-sm" onclick="playItem('${item.id}')" style="width: 100%;">Play</button>`
+                    ${isActive
+                ? `<button class="btn btn-secondary btn-sm" onclick="pauseItem('${item.id}')" style="width: 100%;">Pause</button>`
+                : `<button class="btn btn-primary btn-sm" onclick="playItem('${item.id}')" style="width: 100%;">Play</button>`
             }
                 </div>
                 <span class="badge" style="background-color: ${category?.color}1a; color: ${category?.color}; border: 1px solid ${category?.color}33; margin-right: var(--spacing-sm);">${category?.icon || '🎵'} ${category?.name || 'Unknown'}</span>
                 <div class="practice-item-info">
                     <span class="practice-item-name">${item.name}</span>
-                    <div class="star-rating desktop-only" style="margin-left: 8px; font-size: 0.9em; vertical-align: middle;" 
+                    <div class="star-rating desktop-only" style="margin-left: 8px; font-size: 0.9em; vertical-align: middle;"
                          onclick="updateDashboardRating('${libItem?.id}', event)">
                         ${starsHtml}
                     </div>
                 </div>
-                <span class="practice-item-time" id="item-time-${item.id}" style="margin-left: auto; margin-right: var(--spacing-md);">${FretLogTimer.formatDuration(timeSpent)}</span>
+                ${timeCell}
                 <div class="practice-item-actions">
                     <button class="btn btn-ghost btn-sm" onclick="removeSessionItem('${item.id}')">×</button>
                 </div>
             </li>
         `;
     }).join('');
+
+    // Auto-focus the hours input if we just entered edit mode
+    if (editingTimeItemId) {
+        const input = document.getElementById(`custom-time-h-${editingTimeItemId}`);
+        if (input) { input.focus(); input.select(); }
+    }
 }
 
 /**
@@ -614,7 +671,52 @@ window.removeSessionItem = removeSessionItem;
 window.endSession = endSession;
 window.toggleGlobalTimer = toggleGlobalTimer;
 
+// ==========================================
+// Custom Time Editing
+// ==========================================
+function setCustomItemTime(itemId) {
+    // Pause the item first if it's actively running, to freeze the timer
+    if (activeItemId === itemId) {
+        pauseItem(itemId);
+        // Give pauseItem a tick to finish before re-rendering in edit mode
+        setTimeout(() => {
+            editingTimeItemId = itemId;
+            updateSessionItemsList();
+        }, 50);
+        return;
+    }
+    editingTimeItemId = itemId;
+    updateSessionItemsList();
+}
+
+async function confirmCustomTime(itemId) {
+    const hInput = document.getElementById(`custom-time-h-${itemId}`);
+    const mInput = document.getElementById(`custom-time-m-${itemId}`);
+    if (!hInput || !mInput) return;
+
+    const hours = parseInt(hInput.value) || 0;
+    const mins = parseInt(mInput.value) || 0;
+    const newTimeMs = Math.max(0, (hours * 60 + mins) * 60000);
+
+    // Update in-memory timer tracking so session total stays in sync
+    itemTimers[itemId] = newTimeMs;
+
+    // Persist to the session
+    await FretLogData.updateSessionItemTime(itemId, newTimeMs);
+
+    editingTimeItemId = null;
+    updateSessionItemsList();
+}
+
+function cancelCustomTime() {
+    editingTimeItemId = null;
+    updateSessionItemsList();
+}
+
 async function removeSessionItem(itemId) {
+    // Cancel edit mode if removing the item being edited
+    if (editingTimeItemId === itemId) editingTimeItemId = null;
+
     if (activeItemId === itemId) {
         FretLogTimer.stop(`item-${itemId}`);
         activeItemId = null;
@@ -1034,3 +1136,6 @@ window.cancelSession = cancelSession;
 window.confirmAddItem = confirmAddItem;
 window.openChangeInstrumentModal = openChangeInstrumentModal;
 window.openAddItemModal = openAddItemModal;
+window.setCustomItemTime = setCustomItemTime;
+window.confirmCustomTime = confirmCustomTime;
+window.cancelCustomTime = cancelCustomTime;

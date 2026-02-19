@@ -185,6 +185,18 @@
   width: 100% !important;
 }
 
+/* Hide spinner arrows on custom time inputs */
+.custom-time-no-spin::-webkit-outer-spin-button,
+.custom-time-no-spin::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.custom-time-no-spin {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 /* ==========================================
    Base Typography
    ========================================== */
@@ -193,6 +205,8 @@ html {
   scroll-behavior: smooth;
   height: 100%;
   /* Needed for body min-height */
+  overflow-x: hidden;
+  /* Prevent horizontal scroll / page wider than viewport */
 }
 
 body {
@@ -207,6 +221,8 @@ body {
   display: flex;
   /* Ensure body takes full height */
   flex-direction: column;
+  overflow-x: hidden;
+  /* Belt-and-suspenders: prevent any child from widening the page */
 }
 
 h1,
@@ -737,6 +753,16 @@ a:hover {
   .dashboard-grid {
     gap: var(--spacing-md) !important;
   }
+
+  /* Period selector buttons — shrink font so 4 buttons fit in a card on mobile
+     without overflowing and forcing the page wider than the viewport */
+  .period-btn {
+    font-size: 0.72rem;
+    padding: 7px 2px;
+    white-space: normal;
+    /* Allow text to wrap if even smaller screen */
+    word-break: break-word;
+  }
 }
 
 /* ==========================================
@@ -862,6 +888,21 @@ a:hover {
   white-space: nowrap;
 }
 
+@media (max-width: 768px) {
+  .practice-item-time {
+    width: auto;
+    min-width: 0;
+    flex-shrink: 1;
+    font-size: var(--font-size-small);
+  }
+
+  .practice-item-meta {
+    width: auto;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+}
+
 /* ==========================================
    Mobile Bottom Navigation
    ========================================== */
@@ -877,6 +918,9 @@ a:hover {
   z-index: 1000;
   padding: 0 var(--spacing-md);
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  /* Ensure nav is always in view even when browser chrome auto-hides */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .mobile-nav-list {
@@ -990,10 +1034,10 @@ a:hover {
     display: block;
   }
 
-  /* Adjust main content padding for bottom nav */
+  /* Adjust main content padding for bottom nav + safe area */
   .main-content {
     padding: var(--spacing-md);
-    padding-bottom: 80px;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
     /* Extra space for bottom nav */
   }
 
@@ -1984,15 +2028,17 @@ td.text-right {
   }
 }
 
-/* Fix mobile nav SafeArea for iPhone X+ */
-.mobile-nav {
-  padding-bottom: env(safe-area-inset-bottom);
-  height: calc(64px + env(safe-area-inset-bottom));
-}
+/* Fix mobile nav SafeArea for iPhone X+ — only apply within mobile breakpoint */
+@media (max-width: 768px) {
+  .mobile-nav {
+    padding-bottom: env(safe-area-inset-bottom);
+    height: calc(64px + env(safe-area-inset-bottom));
+  }
 
-.mobile-nav-list {
-  padding-bottom: env(safe-area-inset-bottom);
-  /* Push icons up from safe area */
+  .mobile-nav-list {
+    padding-bottom: env(safe-area-inset-bottom);
+    /* Push icons up from safe area */
+  }
 }
 
 /* Mobile Navigation */

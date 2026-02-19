@@ -324,8 +324,15 @@
                 </select>
             </div>
             <div class="form-group">
-                <label class="form-label">Time Spent (minutes)</label>
-                <input type="number" class="form-input" id="item-time" min="0" value="0">
+                <label class="form-label">Time Spent</label>
+                <div class="flex items-center gap-sm">
+                    <input type="number" class="form-input custom-time-no-spin" id="item-time-h" min="0" max="23"
+                        value="0" placeholder="0" style="text-align: center;">
+                    <span class="text-secondary" style="white-space: nowrap;">h</span>
+                    <input type="number" class="form-input custom-time-no-spin" id="item-time-m" min="0" max="59"
+                        value="0" placeholder="0" style="text-align: center;">
+                    <span class="text-secondary" style="white-space: nowrap;">m</span>
+                </div>
             </div>
         </div>
         <div class="modal-footer">
@@ -719,13 +726,20 @@
         const categories = FretLogData.getCategories();
         container.innerHTML = tempSessionItems.map((item, index) => {
             const cat = categories.find(c => c.id === item.categoryId);
+            const hVal = Math.floor((item.timeSpent || 0) / 3600000);
+            const mVal = Math.floor(((item.timeSpent || 0) % 3600000) / 60000);
             return `
           <div class="practice-item" style="background:var(--bg-secondary); border-radius:var(--radius-md); margin-bottom:var(--spacing-sm);">
             <div class="practice-item-info"><span class="practice-item-name">${cat?.icon || '🎵'} ${item.name}</span></div>
             <div class="flex items-center gap-sm">
-              <input type="number" class="form-input" style="width:70px;" value="${Math.floor((item.timeSpent || 0) / 60000)}" 
-                     onchange="tempSessionItems[${index}].timeSpent = this.value * 60000" min="0">
-              <span class="text-secondary">min</span>
+              <input type="number" class="form-input custom-time-no-spin" id="tmp-h-${index}"
+                     style="width:52px; text-align:center;" value="${hVal}" min="0" max="23"
+                     onchange="tempSessionItems[${index}].timeSpent=(parseInt(document.getElementById('tmp-h-${index}').value)||0)*3600000+(parseInt(document.getElementById('tmp-m-${index}').value)||0)*60000">
+              <span class="text-secondary" style="font-size:0.8rem;">h</span>
+              <input type="number" class="form-input custom-time-no-spin" id="tmp-m-${index}"
+                     style="width:52px; text-align:center;" value="${mVal}" min="0" max="59"
+                     onchange="tempSessionItems[${index}].timeSpent=(parseInt(document.getElementById('tmp-h-${index}').value)||0)*3600000+(parseInt(document.getElementById('tmp-m-${index}').value)||0)*60000">
+              <span class="text-secondary" style="font-size:0.8rem;">m</span>
               <button class="btn btn-ghost btn-sm text-danger" onclick="tempSessionItems.splice(${index}, 1); renderTempSessionItems();">×</button>
             </div>
           </div>`;
@@ -737,7 +751,8 @@
         document.getElementById('item-category-select').innerHTML = categories.map(c =>
             `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
         updateSessionItemOptions();
-        document.getElementById('item-time').value = '0';
+        document.getElementById('item-time-h').value = '0';
+        document.getElementById('item-time-m').value = '0';
         openModal('session-item-modal');
     }
 
@@ -849,10 +864,12 @@
         document.getElementById('item-category-select').addEventListener('change', updateSessionItemOptions);
         document.getElementById('confirm-add-session-item').addEventListener('click', () => {
             const itemId = document.getElementById('item-select').value;
-            const time = parseInt(document.getElementById('item-time').value) || 0;
+            const hours = parseInt(document.getElementById('item-time-h').value) || 0;
+            const mins = parseInt(document.getElementById('item-time-m').value) || 0;
+            const timeMs = (hours * 60 + mins) * 60000;
             const libItem = FretLogData.getLibraryItems().find(i => i.id === itemId);
             if (libItem) {
-                tempSessionItems.push({ id: FretLogData.generateId(), libraryItemId: itemId, name: libItem.name, categoryId: libItem.categoryId, timeSpent: time * 60000 });
+                tempSessionItems.push({ id: FretLogData.generateId(), libraryItemId: itemId, name: libItem.name, categoryId: libItem.categoryId, timeSpent: timeMs });
                 renderTempSessionItems();
                 closeModal('session-item-modal');
             }
