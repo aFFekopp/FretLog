@@ -19,7 +19,7 @@ function populateFilters() {
         const color = c.color || 'var(--color-primary)';
         const isActive = currentSelectedCategory === c.id;
         return `
-            <button class="category-filter-btn ${isActive ? 'active' : ''}" 
+            <button class="category-filter-btn ${isActive ? 'active' : ''}"
                     data-action="category-filter" data-id="${escapeHtml(c.id)}"
                     style="${isActive ? `border-color:${color}; color:${color}; background:${color}10;` : `border-color:${color}40; color:${color}a0;`}">
                 <span>${escapeHtml(c.icon)}</span> <span>${escapeHtml(c.name)}</span>
