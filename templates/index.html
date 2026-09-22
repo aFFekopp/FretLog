@@ -98,7 +98,7 @@
                     </svg>
                     <h4 class="empty-state-title">No practice sessions yet</h4>
                     <p class="empty-state-text">Start your first practice session to see your progress here.</p>
-                    <button class="btn btn-primary" onclick="startSession()">Start Practice</button>
+                    <button class="btn btn-primary" data-action="start-session">Start Practice</button>
                 </div>
             </div>
         </div>
@@ -199,7 +199,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3 class="modal-title">Add Practice Item</h3>
-            <button class="modal-close" onclick="closeModal('add-item-modal')">
+            <button class="modal-close" aria-label="Close add item modal" data-action="close-modal" data-modal="add-item-modal">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
@@ -237,7 +237,7 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal('add-item-modal')">Cancel</button>
+            <button class="btn btn-secondary" data-action="close-modal" data-modal="add-item-modal">Cancel</button>
             <button class="btn btn-primary" id="confirm-add-item">Add to Session</button>
         </div>
     </div>
@@ -248,7 +248,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3 class="modal-title">End Session?</h3>
-            <button class="modal-close" onclick="closeModal('end-session-modal')">
+            <button class="modal-close" aria-label="Close end session modal" data-action="close-modal" data-modal="end-session-modal">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
@@ -269,7 +269,7 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal('end-session-modal')">Continue Practice</button>
+            <button class="btn btn-secondary" data-action="close-modal" data-modal="end-session-modal">Continue Practice</button>
             <button class="btn btn-success" id="confirm-end-session">End Session</button>
         </div>
     </div>
@@ -280,7 +280,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3 class="modal-title">Cancel Session?</h3>
-            <button class="modal-close" onclick="closeModal('cancel-session-modal')">
+            <button class="modal-close" aria-label="Close cancel session modal" data-action="close-modal" data-modal="cancel-session-modal">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
@@ -292,7 +292,7 @@
             <p class="text-secondary mt-sm">Do you want to cancel this session without saving?</p>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal('cancel-session-modal')">Continue Practice</button>
+            <button class="btn btn-secondary" data-action="close-modal" data-modal="cancel-session-modal">Continue Practice</button>
             <button class="btn btn-danger" id="confirm-cancel-session">Cancel Session</button>
         </div>
     </div>
@@ -301,10 +301,4 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-<script>
-    // Page level initialization if needed
-    document.addEventListener('DOMContentLoaded', () => {
-        // initDashboard is handled by fretlog-data-ready in app.js
-    });
-</script>
 {% endblock %}

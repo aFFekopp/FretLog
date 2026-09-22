@@ -8,9 +8,17 @@ const ASSETS_TO_CACHE = [
     '/settings',
     '/static/css/styles.css',
     '/static/js/app.js',
+    '/static/js/data.js',
+    '/static/js/utils.js',
+    '/static/js/timer.js',
+    '/static/js/theme.js',
+    '/static/js/base-init.js',
+    '/static/js/service-worker-register.js',
+    '/static/js/library-page.js',
+    '/static/js/sessions-page.js',
+    '/static/js/statistics-page.js',
+    '/static/js/settings-page.js',
     '/static/img/fretlog_icon.png',
-    'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css',
-    'https://cdn.jsdelivr.net/npm/flatpickr'
 ];
 
 // Install Event - Cache assets
@@ -19,7 +27,9 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             console.log('Opened cache:', CACHE_NAME);
-            return cache.addAll(ASSETS_TO_CACHE);
+            return Promise.all(ASSETS_TO_CACHE.map(asset =>
+                cache.add(asset).catch(error => console.warn('Could not cache asset:', asset, error))
+            ));
         })
     );
 });
@@ -51,27 +61,28 @@ self.addEventListener('fetch', (event) => {
     }
 
     event.respondWith(
-        caches.match(event.request).then((response) => {
-            // Cache hit - return response
-            if (response) {
-                return response;
-            }
-
-            // Not in cache - fetch from network
-            return fetch(event.request).then((networkResponse) => {
-                // Check if we received a valid response
-                if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+        event.request.mode === 'navigate'
+            ? fetch(event.request)
+                .then((networkResponse) => {
+                    if (networkResponse && networkResponse.ok) {
+                        const responseToCache = networkResponse.clone();
+                        caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
+                    }
                     return networkResponse;
-                }
+                })
+                .catch(() => caches.match(event.request))
+            : caches.match(event.request, { ignoreSearch: true }).then((response) => {
+                if (response) return response;
 
-                // Clone the response to store it in cache
-                const responseToCache = networkResponse.clone();
-                caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(event.request, responseToCache);
+                return fetch(event.request).then((networkResponse) => {
+                    if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+                        return networkResponse;
+                    }
+
+                    const responseToCache = networkResponse.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
+                    return networkResponse;
                 });
-
-                return networkResponse;
-            });
-        })
+            })
     );
 });

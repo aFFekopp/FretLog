@@ -20,8 +20,14 @@ ENV/
 .idea/
 .gemini/
 .agent/
+
+# Node/Playwright test artifacts
+node_modules/
+test-results/
+
 prompt.md
 gemini.md
 instructions.md
 uiguidelines.md
 CHANGELOG.md
+PROJECT_MEMORY.md

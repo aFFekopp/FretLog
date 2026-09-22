@@ -24,8 +24,12 @@ def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         # ensure directory exists
-        os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
-        db = g._database = sqlite3.connect(DATABASE)
+        database_dir = os.path.dirname(DATABASE)
+        if database_dir:
+            os.makedirs(database_dir, exist_ok=True)
+        db = g._database = sqlite3.connect(DATABASE, timeout=10)
+        db.execute('PRAGMA busy_timeout = 10000')
+        db.execute('PRAGMA foreign_keys = ON')
         db.row_factory = sqlite3.Row
     return db
 
@@ -33,6 +37,8 @@ def get_db():
 def close_connection(exception):
     db = getattr(g, '_database', None)
     if db is not None:
+        if exception is not None:
+            db.rollback()
         db.close()
 
 def dict_from_row(row):
@@ -41,16 +47,102 @@ def dict_from_row(row):
 def generate_id():
     return str(uuid.uuid4())
 
+def get_json_payload():
+    """Return a JSON object or a consistent client error response."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return None, (jsonify({'error': 'Request body must be a JSON object'}), 400)
+    return data, None
+
+def attach_session_items(cursor, sessions):
+    """Attach session items with one query for a collection of sessions."""
+    if not sessions:
+        return sessions
+
+    session_ids = [session['id'] for session in sessions]
+    placeholders = ','.join('?' for _ in session_ids)
+    cursor.execute(
+        f'SELECT * FROM session_items WHERE session_id IN ({placeholders})',
+        session_ids
+    )
+    items_by_session = {session_id: [] for session_id in session_ids}
+    for item_row in cursor.fetchall():
+        item = dict_from_row(item_row)
+        items_by_session[item['session_id']].append(item)
+    for session in sessions:
+        session['items'] = items_by_session[session['id']]
+    return sessions
+
+def validate_session_payload(data):
+    status = data.get('status')
+    if status is not None and status not in ('running', 'completed', 'pending'):
+        return 'status must be running, completed, or pending'
+    total_time = data.get('totalTime')
+    if total_time is not None and (not isinstance(total_time, (int, float)) or total_time < 0):
+        return 'totalTime must be a non-negative number'
+    for item in data.get('items', []):
+        if not isinstance(item, dict):
+            return 'each session item must be an object'
+        time_spent = item.get('timeSpent', item.get('time_spent', 0))
+        if not isinstance(time_spent, (int, float)) or time_spent < 0:
+            return 'session item timeSpent must be a non-negative number'
+    return None
+
+def migrate_foreign_keys(conn):
+    """Add relational constraints to older databases without losing data."""
+    cursor = conn.cursor()
+    cursor.execute('PRAGMA foreign_key_list(session_items)')
+    if cursor.fetchone():
+        return
+
+    # The database was previously created without constraints. The orphan audit
+    # runs before this migration, so rebuilding the dependent tables is safe.
+    cursor.execute('DROP INDEX IF EXISTS idx_library_items_created_at')
+    cursor.execute('DROP INDEX IF EXISTS idx_sessions_status_date')
+    cursor.execute('DROP INDEX IF EXISTS idx_session_items_session_id')
+    cursor.execute('DROP INDEX IF EXISTS idx_session_items_library_item_id')
+
+    cursor.execute('ALTER TABLE library_items RENAME TO library_items_old')
+    cursor.execute('ALTER TABLE sessions RENAME TO sessions_old')
+    cursor.execute('ALTER TABLE session_items RENAME TO session_items_old')
+
+    cursor.execute('''CREATE TABLE library_items (
+        id TEXT PRIMARY KEY, name TEXT, category_id TEXT,
+        artist_id TEXT, star_rating INTEGER, notes TEXT, created_at TEXT,
+        FOREIGN KEY (category_id) REFERENCES categories(id),
+        FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE SET NULL)''')
+    cursor.execute('''CREATE TABLE sessions (
+        id TEXT PRIMARY KEY, instrument_id TEXT, status TEXT, date TEXT,
+        start_time TEXT, end_time TEXT, total_time INTEGER, notes TEXT,
+        created_at TEXT,
+        FOREIGN KEY (instrument_id) REFERENCES instruments(id) ON DELETE SET NULL)''')
+    cursor.execute('''CREATE TABLE session_items (
+        id TEXT PRIMARY KEY, session_id TEXT, library_item_id TEXT,
+        name TEXT, category_id TEXT, time_spent INTEGER, started_at TEXT,
+        FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+        FOREIGN KEY (library_item_id) REFERENCES library_items(id) ON DELETE SET NULL,
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL)''')
+
+    cursor.execute('INSERT INTO library_items SELECT * FROM library_items_old')
+    cursor.execute('INSERT INTO sessions SELECT * FROM sessions_old')
+    cursor.execute('INSERT INTO session_items SELECT * FROM session_items_old')
+    cursor.execute('DROP TABLE library_items_old')
+    cursor.execute('DROP TABLE sessions_old')
+    cursor.execute('DROP TABLE session_items_old')
+
 def init_db():
     # ensure directory exists
-    os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
-    
-    conn = sqlite3.connect(DATABASE)
+    database_dir = os.path.dirname(DATABASE)
+    if database_dir:
+        os.makedirs(database_dir, exist_ok=True)
+
+    conn = sqlite3.connect(DATABASE, timeout=10)
+    conn.execute('PRAGMA busy_timeout = 10000')
+    conn.execute('PRAGMA foreign_keys = ON')
+    conn.execute('PRAGMA journal_mode = WAL')
     cursor = conn.cursor()
     
     # Tables
-    cursor.execute('DROP TABLE IF EXISTS users')
-    
     cursor.execute('''CREATE TABLE IF NOT EXISTS categories (
         id TEXT PRIMARY KEY, name TEXT, type TEXT, icon TEXT, color TEXT)''')
     
@@ -61,19 +153,33 @@ def init_db():
         id TEXT PRIMARY KEY, name TEXT)''')
     
     cursor.execute('''CREATE TABLE IF NOT EXISTS library_items (
-        id TEXT PRIMARY KEY, name TEXT, category_id TEXT, artist_id TEXT, 
-        star_rating INTEGER, notes TEXT, created_at TEXT)''')
+        id TEXT PRIMARY KEY, name TEXT, category_id TEXT, artist_id TEXT,
+        star_rating INTEGER, notes TEXT, created_at TEXT,
+        FOREIGN KEY (category_id) REFERENCES categories(id),
+        FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE SET NULL)''')
     
     cursor.execute('''CREATE TABLE IF NOT EXISTS sessions (
-        id TEXT PRIMARY KEY, instrument_id TEXT, status TEXT, date TEXT, 
-        start_time TEXT, end_time TEXT, total_time INTEGER, notes TEXT, created_at TEXT)''')
+        id TEXT PRIMARY KEY, instrument_id TEXT, status TEXT, date TEXT,
+        start_time TEXT, end_time TEXT, total_time INTEGER, notes TEXT, created_at TEXT,
+        FOREIGN KEY (instrument_id) REFERENCES instruments(id) ON DELETE SET NULL)''')
     
     cursor.execute('''CREATE TABLE IF NOT EXISTS session_items (
-        id TEXT PRIMARY KEY, session_id TEXT, library_item_id TEXT, name TEXT, 
-        category_id TEXT, time_spent INTEGER, started_at TEXT)''')
+        id TEXT PRIMARY KEY, session_id TEXT, library_item_id TEXT, name TEXT,
+        category_id TEXT, time_spent INTEGER, started_at TEXT,
+        FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+        FOREIGN KEY (library_item_id) REFERENCES library_items(id) ON DELETE SET NULL,
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL)''')
     
     cursor.execute('''CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY, value TEXT)''')
+
+    migrate_foreign_keys(conn)
+
+    # Indexes for the read paths used by initialization, history, and statistics.
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_library_items_created_at ON library_items(created_at)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_status_date ON sessions(status, date)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_session_items_session_id ON session_items(session_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_session_items_library_item_id ON session_items(library_item_id)')
     
     # Default data if empty
     cursor.execute('SELECT count(*) FROM instruments')
@@ -213,14 +319,26 @@ def get_init_data():
     cursor.execute('SELECT * FROM library_items ORDER BY created_at DESC')
     library = [dict_from_row(row) for row in cursor.fetchall()]
     
-    # Sessions (completed only)
-    cursor.execute('SELECT * FROM sessions WHERE status="completed" ORDER BY date DESC')
-    sessions = []
-    for row in cursor.fetchall():
-        session = dict_from_row(row)
-        cursor.execute('SELECT * FROM session_items WHERE session_id=?', (session['id'],))
-        session['items'] = [dict_from_row(item) for item in cursor.fetchall()]
-        sessions.append(session)
+    # Sessions (completed only). Pagination is opt-in for existing clients.
+    session_page_requested = 'sessionLimit' in request.args or 'sessionOffset' in request.args
+    try:
+        session_limit = min(max(int(request.args.get('sessionLimit', 500)), 1), 500)
+        session_offset = max(int(request.args.get('sessionOffset', 0)), 0)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'sessionLimit and sessionOffset must be integers'}), 400
+
+    cursor.execute('SELECT COUNT(*) FROM sessions WHERE status="completed"')
+    session_total = cursor.fetchone()[0]
+    session_query = 'SELECT * FROM sessions WHERE status="completed" ORDER BY date DESC'
+    session_params = []
+    if session_page_requested:
+        session_query += ' LIMIT ? OFFSET ?'
+        session_params = [session_limit, session_offset]
+    cursor.execute(session_query, session_params)
+    session_rows = cursor.fetchall()
+    sessions = [dict_from_row(row) for row in session_rows]
+
+    sessions = attach_session_items(cursor, sessions)
     
     # Current session (running)
     cursor.execute('SELECT * FROM sessions WHERE status="running" ORDER BY created_at DESC LIMIT 1')
@@ -243,6 +361,9 @@ def get_init_data():
         'artists': artists,
         'library': library,
         'sessions': sessions,
+        'sessionTotal': session_total,
+        'sessionLimit': session_limit if session_page_requested else None,
+        'sessionOffset': session_offset if session_page_requested else None,
         'currentSession': current_session,
         'theme': theme
     })
@@ -269,12 +390,15 @@ def get_categories():
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM categories')
     categories = [dict_from_row(row) for row in cursor.fetchall()]
-    conn.close()
     return jsonify(categories)
 
 @app.route('/api/categories', methods=['POST'])
 def add_category():
-    data = request.json
+    data, error = get_json_payload()
+    if error:
+        return error
+    if not isinstance(data.get('name'), str) or not data['name'].strip():
+        return jsonify({'error': 'name is required'}), 400
     conn = get_db()
     cursor = conn.cursor()
     
@@ -296,23 +420,26 @@ def add_category():
     conn.commit()
     cursor.execute('SELECT * FROM categories WHERE id=?', (cat_id,))
     category = dict_from_row(cursor.fetchone())
-    conn.close()
     return jsonify(category), 201
 
 @app.route('/api/categories/<cat_id>', methods=['PUT'])
 def update_category(cat_id):
-    data = request.json
+    data, error = get_json_payload()
+    if error:
+        return error
     conn = get_db()
     cursor = conn.cursor()
     
     cursor.execute('''
         UPDATE categories SET name=?, type=?, icon=?, color=? WHERE id=?
     ''', (data.get('name'), data.get('type'), data.get('icon'), data.get('color'), cat_id))
+
+    if cursor.rowcount == 0:
+        return jsonify({'error': 'Category not found'}), 404
     
     conn.commit()
     cursor.execute('SELECT * FROM categories WHERE id=?', (cat_id,))
     category = dict_from_row(cursor.fetchone())
-    conn.close()
     return jsonify(category)
 
 @app.route('/api/categories/<cat_id>', methods=['DELETE'])
@@ -321,7 +448,6 @@ def delete_category(cat_id):
     cursor = conn.cursor()
     cursor.execute('DELETE FROM categories WHERE id=?', (cat_id,))
     conn.commit()
-    conn.close()
     return '', 204
 
 # ==========================================
@@ -333,12 +459,15 @@ def get_instruments():
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM instruments')
     instruments = [dict_from_row(row) for row in cursor.fetchall()]
-    conn.close()
     return jsonify(instruments)
 
 @app.route('/api/instruments', methods=['POST'])
 def add_instrument():
-    data = request.json
+    data, error = get_json_payload()
+    if error:
+        return error
+    if not isinstance(data.get('name'), str) or not data['name'].strip():
+        return jsonify({'error': 'name is required'}), 400
     conn = get_db()
     cursor = conn.cursor()
     
@@ -351,23 +480,26 @@ def add_instrument():
     conn.commit()
     cursor.execute('SELECT * FROM instruments WHERE id=?', (inst_id,))
     instrument = dict_from_row(cursor.fetchone())
-    conn.close()
     return jsonify(instrument), 201
 
 @app.route('/api/instruments/<inst_id>', methods=['PUT'])
 def update_instrument(inst_id):
-    data = request.json
+    data, error = get_json_payload()
+    if error:
+        return error
     conn = get_db()
     cursor = conn.cursor()
     
     cursor.execute('''
         UPDATE instruments SET name=?, icon=? WHERE id=?
     ''', (data.get('name'), data.get('icon'), inst_id))
+
+    if cursor.rowcount == 0:
+        return jsonify({'error': 'Instrument not found'}), 404
     
     conn.commit()
     cursor.execute('SELECT * FROM instruments WHERE id=?', (inst_id,))
     instrument = dict_from_row(cursor.fetchone())
-    conn.close()
     return jsonify(instrument)
 
 @app.route('/api/instruments/<inst_id>', methods=['DELETE'])
@@ -376,7 +508,6 @@ def delete_instrument(inst_id):
     cursor = conn.cursor()
     cursor.execute('DELETE FROM instruments WHERE id=?', (inst_id,))
     conn.commit()
-    conn.close()
     return '', 204
 
 # ==========================================
@@ -388,12 +519,15 @@ def get_artists():
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM artists')
     artists = [dict_from_row(row) for row in cursor.fetchall()]
-    conn.close()
     return jsonify(artists)
 
 @app.route('/api/artists', methods=['POST'])
 def add_artist():
-    data = request.json
+    data, error = get_json_payload()
+    if error:
+        return error
+    if not isinstance(data.get('name'), str) or not data['name'].strip():
+        return jsonify({'error': 'name is required'}), 400
     conn = get_db()
     cursor = conn.cursor()
     
@@ -402,7 +536,6 @@ def add_artist():
     existing = cursor.fetchone()
     
     if existing:
-        conn.close()
         return jsonify(dict_from_row(existing))
     
     artist_id = generate_id()
@@ -412,7 +545,6 @@ def add_artist():
     conn.commit()
     cursor.execute('SELECT * FROM artists WHERE id=?', (artist_id,))
     artist = dict_from_row(cursor.fetchone())
-    conn.close()
     return jsonify(artist), 201
 
 @app.route('/api/artists/<artist_id>', methods=['DELETE'])
@@ -421,19 +553,23 @@ def delete_artist(artist_id):
     cursor = conn.cursor()
     cursor.execute('DELETE FROM artists WHERE id=?', (artist_id,))
     conn.commit()
-    conn.close()
     return '', 204
 
 @app.route('/api/artists/<artist_id>', methods=['PUT', 'POST'])
 def update_artist(artist_id):
-    data = request.json
+    data, error = get_json_payload()
+    if error:
+        return error
+    if not isinstance(data.get('name'), str) or not data['name'].strip():
+        return jsonify({'error': 'name is required'}), 400
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('UPDATE artists SET name=? WHERE id=?', (data.get('name'), artist_id))
+    if cursor.rowcount == 0:
+        return jsonify({'error': 'Artist not found'}), 404
     conn.commit()
     cursor.execute('SELECT * FROM artists WHERE id=?', (artist_id,))
     artist = dict_from_row(cursor.fetchone())
-    conn.close()
     return jsonify(artist)
 
 # ==========================================
@@ -445,14 +581,17 @@ def get_library():
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM library_items ORDER BY created_at DESC')
     items = [dict_from_row(row) for row in cursor.fetchall()]
-    conn.close()
     return jsonify(items)
 
 @app.route('/api/library', methods=['POST'])
 def add_library_item():
-    data = request.json
+    data, error = get_json_payload()
+    if error:
+        return error
     name = data.get('name')
     category_id = data.get('categoryId')
+    if not isinstance(name, str) or not name.strip() or not category_id:
+        return jsonify({'error': 'name and categoryId are required'}), 400
     artist_id = data.get('artistId')
     
     conn = get_db()
@@ -465,7 +604,6 @@ def add_library_item():
     ''', (name, category_id, artist_id, artist_id))
     
     if cursor.fetchone():
-        conn.close()
         return jsonify({'error': 'An item with this name already exists in this category.'}), 409
 
     item_id = generate_id()
@@ -478,12 +616,13 @@ def add_library_item():
     conn.commit()
     cursor.execute('SELECT * FROM library_items WHERE id=?', (item_id,))
     item = dict_from_row(cursor.fetchone())
-    conn.close()
     return jsonify(item), 201
 
 @app.route('/api/library/<item_id>', methods=['PUT'])
 def update_library_item(item_id):
-    data = request.json
+    data, error = get_json_payload()
+    if error:
+        return error
     conn = get_db()
     cursor = conn.cursor()
 
@@ -492,7 +631,6 @@ def update_library_item(item_id):
         cursor.execute('SELECT name, category_id, artist_id FROM library_items WHERE id=?', (item_id,))
         current = cursor.fetchone()
         if not current:
-            conn.close()
             return jsonify({'error': 'Item not found'}), 404
         
         new_name = data.get('name', current[0])
@@ -506,7 +644,6 @@ def update_library_item(item_id):
         ''', (new_name, new_cat, new_art, new_art, item_id))
         
         if cursor.fetchone():
-            conn.close()
             return jsonify({'error': 'An item with this name already exists in this category.'}), 409
     
     # Map frontend camelCase to backend snake_case
@@ -534,7 +671,6 @@ def update_library_item(item_id):
     
     cursor.execute('SELECT * FROM library_items WHERE id=?', (item_id,))
     item = dict_from_row(cursor.fetchone())
-    conn.close()
     return jsonify(item)
 
 @app.route('/api/library/<item_id>', methods=['DELETE'])
@@ -543,7 +679,6 @@ def delete_library_item(item_id):
     cursor = conn.cursor()
     cursor.execute('DELETE FROM library_items WHERE id=?', (item_id,))
     conn.commit()
-    conn.close()
     return '', 204
 
 # ==========================================
@@ -553,22 +688,31 @@ def delete_library_item(item_id):
 def get_sessions():
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM sessions WHERE status="completed" ORDER BY date DESC')
-    sessions = []
+    try:
+        limit = min(max(int(request.args.get('limit', 500)), 1), 500)
+        offset = max(int(request.args.get('offset', 0)), 0)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'limit and offset must be integers'}), 400
+
+    cursor.execute(
+        'SELECT * FROM sessions WHERE status="completed" ORDER BY date DESC LIMIT ? OFFSET ?',
+        (limit, offset)
+    )
+    sessions = [dict_from_row(row) for row in cursor.fetchall()]
+    sessions = attach_session_items(cursor, sessions)
     
-    for row in cursor.fetchall():
-        session = dict_from_row(row)
-        # Get session items
-        cursor.execute('SELECT * FROM session_items WHERE session_id=?', (session['id'],))
-        session['items'] = [dict_from_row(item) for item in cursor.fetchall()]
-        sessions.append(session)
-    
-    conn.close()
     return jsonify(sessions)
 
 @app.route('/api/sessions', methods=['POST'])
 def add_session():
-    data = request.json
+    data, error = get_json_payload()
+    if error:
+        return error
+    if not isinstance(data.get('items', []), list):
+        return jsonify({'error': 'items must be an array'}), 400
+    session_error = validate_session_payload(data)
+    if session_error:
+        return jsonify({'error': session_error}), 400
     conn = get_db()
     cursor = conn.cursor()
     
@@ -579,7 +723,6 @@ def add_session():
     exists = cursor.fetchone()
     
     if exists:
-        print(f"DEBUG: Session {session_id} exists. Updating...")
         # Update existing session
         cursor.execute('''
             UPDATE sessions SET instrument_id=?, status=?, date=?, start_time=?, end_time=?, 
@@ -589,11 +732,8 @@ def add_session():
               data.get('endTime'), data.get('totalTime', 0), data.get('notes', ''), session_id))
         
         # Delete old items and re-insert
-        print(f"DEBUG: Deleting items for session {session_id}")
         cursor.execute('DELETE FROM session_items WHERE session_id=?', (session_id,))
-        print(f"DEBUG: Deleted {cursor.rowcount} items")
     else:
-        print(f"DEBUG: Creating new session {session_id}")
         # Insert new session
         cursor.execute('''
             INSERT INTO sessions (id, instrument_id, status, date, start_time, end_time, total_time, notes, created_at)
@@ -614,16 +754,13 @@ def add_session():
         started_at = item.get('startedAt') or item.get('started_at')
         time_spent = item.get('timeSpent', 0) if item.get('timeSpent') is not None else item.get('time_spent', 0)
 
-        # DEBUG: Check for collision
         cursor.execute("SELECT session_id FROM session_items WHERE id=?", (item_id,))
         existing_collision = cursor.fetchone()
         if existing_collision:
-            print(f"DEBUG: Item {item_id} ALREADY EXISTS in session {existing_collision[0]}")
             # If it belongs to a different session, this is a logic error in our app
             # But the UNIQUE constraint will fail regardless.
             # We must DELETE it by ID to proceed safely, implying session_id mismatch
             cursor.execute("DELETE FROM session_items WHERE id=?", (item_id,))
-            print(f"DEBUG: Force deleted item {item_id} to resolve collision")
 
         cursor.execute('''
             INSERT INTO session_items (id, session_id, library_item_id, name, category_id, time_spent, started_at)
@@ -637,15 +774,24 @@ def add_session():
     session = dict_from_row(cursor.fetchone())
     cursor.execute('SELECT * FROM session_items WHERE session_id=?', (session_id,))
     session['items'] = [dict_from_row(item) for item in cursor.fetchall()]
-    
-    conn.close()
     return jsonify(session), 201
 
 @app.route('/api/sessions/<session_id>', methods=['PUT'])
 def update_session(session_id):
-    data = request.json
+    data, error = get_json_payload()
+    if error:
+        return error
+    if not isinstance(data.get('items', []), list):
+        return jsonify({'error': 'items must be an array'}), 400
+    session_error = validate_session_payload(data)
+    if session_error:
+        return jsonify({'error': session_error}), 400
     conn = get_db()
     cursor = conn.cursor()
+
+    cursor.execute('SELECT id FROM sessions WHERE id=?', (session_id,))
+    if not cursor.fetchone():
+        return jsonify({'error': 'Session not found'}), 404
     
     # Update session record
     cursor.execute('''
@@ -678,8 +824,6 @@ def update_session(session_id):
     session = dict_from_row(cursor.fetchone())
     cursor.execute('SELECT * FROM session_items WHERE session_id=?', (session_id,))
     session['items'] = [dict_from_row(item) for item in cursor.fetchall()]
-    
-    conn.close()
     return jsonify(session)
 
 @app.route('/api/sessions/<session_id>', methods=['DELETE'])
@@ -689,7 +833,6 @@ def delete_session(session_id):
     cursor.execute('DELETE FROM session_items WHERE session_id=?', (session_id,))
     cursor.execute('DELETE FROM sessions WHERE id=?', (session_id,))
     conn.commit()
-    conn.close()
     return '', 204
 
 # ==========================================
@@ -704,7 +847,6 @@ def get_current_session():
     result = cursor.fetchone()
     
     if not result or not result[0]:
-        conn.close()
         return jsonify(None)
     
     session_id = result[0]
@@ -712,19 +854,23 @@ def get_current_session():
     session = cursor.fetchone()
     
     if not session:
-        conn.close()
         return jsonify(None)
     
     session = dict_from_row(session)
     cursor.execute('SELECT * FROM session_items WHERE session_id=?', (session_id,))
     session['items'] = [dict_from_row(item) for item in cursor.fetchall()]
-    
-    conn.close()
     return jsonify(session)
 
 @app.route('/api/sessions/current', methods=['POST'])
 def save_current_session():
-    data = request.json
+    data, error = get_json_payload()
+    if error:
+        return error
+    if not isinstance(data.get('items', []), list):
+        return jsonify({'error': 'items must be an array'}), 400
+    session_error = validate_session_payload(data)
+    if session_error:
+        return jsonify({'error': session_error}), 400
     conn = get_db()
     cursor = conn.cursor()
     
@@ -782,8 +928,6 @@ def save_current_session():
     session = dict_from_row(cursor.fetchone())
     cursor.execute('SELECT * FROM session_items WHERE session_id=?', (session_id,))
     session['items'] = [dict_from_row(item) for item in cursor.fetchall()]
-    
-    conn.close()
     return jsonify(session)
 
 @app.route('/api/sessions/current', methods=['DELETE'])
@@ -810,7 +954,6 @@ def clear_current_session():
     # Clear current session reference
     cursor.execute("DELETE FROM settings WHERE key='current_session'")
     conn.commit()
-    conn.close()
     return '', 204
 
 @app.route('/api/sessions/current/items', methods=['POST'])
@@ -824,7 +967,6 @@ def add_item_to_current_session():
     result = cursor.fetchone()
     
     if not result or not result[0]:
-        conn.close()
         return jsonify({'error': 'No current session'}), 400
     
     session_id = result[0]
@@ -834,7 +976,6 @@ def add_item_to_current_session():
     library_item = cursor.fetchone()
     
     if not library_item:
-        conn.close()
         return jsonify({'error': 'Library item not found'}), 404
     
     library_item = dict_from_row(library_item)
@@ -854,34 +995,42 @@ def add_item_to_current_session():
     session = dict_from_row(cursor.fetchone())
     cursor.execute('SELECT * FROM session_items WHERE session_id=?', (session_id,))
     session['items'] = [dict_from_row(item) for item in cursor.fetchall()]
-    
-    conn.close()
     return jsonify(session)
 
 @app.route('/api/sessions/current/items/<item_id>', methods=['PUT'])
 def update_session_item_time(item_id):
-    data = request.json
+    data, error = get_json_payload()
+    if error:
+        return error
+    time_spent = data.get('timeSpent')
+    if not isinstance(time_spent, (int, float)) or time_spent < 0:
+        return jsonify({'error': 'timeSpent must be a non-negative number'}), 400
     conn = get_db()
     cursor = conn.cursor()
     
-    cursor.execute('UPDATE session_items SET time_spent=? WHERE id=?',
-                   (data.get('timeSpent', 0), item_id))
-    conn.commit()
-    
-    # Return updated current session
     cursor.execute("SELECT value FROM settings WHERE key='current_session'")
     result = cursor.fetchone()
-    
-    if result and result[0]:
-        session_id = result[0]
+
+    if not result or not result[0]:
+        return jsonify({'error': 'No current session'}), 400
+
+    session_id = result[0]
+    cursor.execute(
+        'UPDATE session_items SET time_spent=? WHERE id=? AND session_id=?',
+        (time_spent, item_id, session_id)
+    )
+    if cursor.rowcount == 0:
+        return jsonify({'error': 'Session item not found'}), 404
+    conn.commit()
+
+    # Return updated current session
+    if session_id:
         cursor.execute('SELECT * FROM sessions WHERE id=?', (session_id,))
         session = dict_from_row(cursor.fetchone())
         cursor.execute('SELECT * FROM session_items WHERE session_id=?', (session_id,))
         session['items'] = [dict_from_row(item) for item in cursor.fetchall()]
-        conn.close()
         return jsonify(session)
     
-    conn.close()
     return jsonify(None)
 
 # ==========================================
@@ -893,24 +1042,28 @@ def get_theme():
     cursor = conn.cursor()
     cursor.execute("SELECT value FROM settings WHERE key='theme'")
     result = cursor.fetchone()
-    conn.close()
     return jsonify({'theme': result[0] if result else 'light'})
 
 @app.route('/api/theme', methods=['POST'])
 def set_theme():
-    data = request.json
+    data, error = get_json_payload()
+    if error:
+        return error
+    if data.get('theme') not in ('light', 'dark'):
+        return jsonify({'error': 'theme must be light or dark'}), 400
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('''
         INSERT OR REPLACE INTO settings (key, value) VALUES ('theme', ?)
     ''', (data.get('theme', 'light'),))
     conn.commit()
-    conn.close()
     return jsonify({'theme': data.get('theme')})
 
 @app.route('/api/settings', methods=['POST'])
 def update_setting():
-    data = request.json
+    data, error = get_json_payload()
+    if error:
+        return error
     key = data.get('key')
     value = data.get('value')
     
@@ -923,7 +1076,6 @@ def update_setting():
         INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)
     ''', (key, value))
     conn.commit()
-    conn.close()
     
     return jsonify({'status': 'success', 'key': key, 'value': value})
 
@@ -938,11 +1090,11 @@ def get_statistics_summary():
     now = datetime.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     
-    # Calculate week start (Sunday)
-    days_since_sunday = now.weekday() + 1 if now.weekday() != 6 else 0
+    # Calculate week start (Monday), matching the frontend statistics.
+    days_since_monday = now.weekday()
     week_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     from datetime import timedelta
-    week_start = (week_start - timedelta(days=days_since_sunday)).isoformat()
+    week_start = (week_start - timedelta(days=days_since_monday)).isoformat()
     
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
     year_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
@@ -965,7 +1117,6 @@ def get_statistics_summary():
         'allTime': all_time
     }
     
-    conn.close()
     return jsonify(summary)
 
 # = = = = = = = = = = = = = = = = = = = = = =
@@ -985,79 +1136,144 @@ def export_data():
         cursor.execute(f'SELECT * FROM {table}')
         export[table] = [dict_from_row(row) for row in cursor.fetchall()]
     
-    conn.close()
     return jsonify(export)
 
 @app.route('/api/import', methods=['POST'])
 def import_data():
     """Import data from JSON with duplicate prevention"""
-    data = request.json
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
+    data, error = get_json_payload()
+    if error:
+        return error
+
+    table_names = {'categories', 'instruments', 'artists', 'library_items',
+                   'sessions', 'session_items', 'settings'}
+    unknown_tables = set(data) - table_names
+    if unknown_tables:
+        return jsonify({'error': f'Unknown data tables: {sorted(unknown_tables)}'}), 400
+    if any(not isinstance(value, list) for value in data.values()):
+        return jsonify({'error': 'Each imported table must be an array'}), 400
+    required_fields = {
+        'categories': ('id', 'name', 'type'),
+        'instruments': ('id', 'name'),
+        'artists': ('id', 'name'),
+        'library_items': ('id', 'name'),
+        'sessions': ('id', 'date'),
+        'session_items': ('id', 'session_id', 'name'),
+        'settings': ('key', 'value')
+    }
+    for table, fields in required_fields.items():
+        for record in data.get(table, []):
+            if not isinstance(record, dict) or any(not record.get(field) for field in fields):
+                return jsonify({'error': f'Invalid record in {table}'}), 400
+    for session in data.get('sessions', []):
+        if not isinstance(session, dict):
+            return jsonify({'error': 'Imported sessions must be objects'}), 400
+        session_error = validate_session_payload(session)
+        if session_error:
+            return jsonify({'error': session_error}), 400
+    for item in data.get('session_items', []):
+        if not isinstance(item, dict):
+            return jsonify({'error': 'Imported session items must be objects'}), 400
+        time_spent = item.get('time_spent', 0)
+        if not isinstance(time_spent, (int, float)) or time_spent < 0:
+            return jsonify({'error': 'Imported session item time_spent must be non-negative'}), 400
         
     conn = get_db()
     cursor = conn.cursor()
     
     try:
-        # 1. Categories - Dedup by name
+        # Resolve imported IDs to existing records without replacing rows.
+        # Replacing a referenced row can trigger foreign-key actions and erase history links.
+        category_ids = {}
         if 'categories' in data:
             for cat in data['categories']:
-                # Check for existing by name
                 cursor.execute('SELECT id FROM categories WHERE LOWER(name) = LOWER(?)', (cat['name'],))
                 existing = cursor.fetchone()
                 target_id = existing[0] if existing else cat['id']
-                
-                cursor.execute('INSERT OR REPLACE INTO categories (id, name, type, icon, color) VALUES (?, ?, ?, ?, ?)',
-                               (target_id, cat['name'], cat['type'], cat.get('icon', '🎵'), cat.get('color')))
-        
-        # 2. Instruments - Dedup by name
+                cursor.execute('SELECT name FROM categories WHERE id=?', (target_id,))
+                if cursor.fetchone() and not existing:
+                    target_id = generate_id()
+                cursor.execute('''
+                    INSERT INTO categories (id, name, type, icon, color) VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET name=excluded.name, type=excluded.type,
+                        icon=excluded.icon, color=excluded.color
+                ''', (target_id, cat['name'], cat['type'], cat.get('icon', '🎵'), cat.get('color')))
+                category_ids[cat['id']] = target_id
+
+        instrument_ids = {}
         if 'instruments' in data:
             for inst in data['instruments']:
                 cursor.execute('SELECT id FROM instruments WHERE LOWER(name) = LOWER(?)', (inst['name'],))
                 existing = cursor.fetchone()
                 target_id = existing[0] if existing else inst['id']
-                
-                cursor.execute('INSERT OR REPLACE INTO instruments (id, name, icon) VALUES (?, ?, ?)',
-                               (target_id, inst['name'], inst.get('icon', '🎸')))
-        
-        # 3. Artists
+                cursor.execute('SELECT name FROM instruments WHERE id=?', (target_id,))
+                if cursor.fetchone() and not existing:
+                    target_id = generate_id()
+                cursor.execute('''
+                    INSERT INTO instruments (id, name, icon) VALUES (?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET name=excluded.name, icon=excluded.icon
+                ''', (target_id, inst['name'], inst.get('icon', '🎸')))
+                instrument_ids[inst['id']] = target_id
+
+        artist_ids = {}
         if 'artists' in data:
             for artist in data['artists']:
                 cursor.execute('SELECT id FROM artists WHERE LOWER(name) = LOWER(?)', (artist['name'],))
                 existing = cursor.fetchone()
                 target_id = existing[0] if existing else artist['id']
-                
-                cursor.execute('INSERT OR REPLACE INTO artists (id, name) VALUES (?, ?)',
-                               (target_id, artist['name']))
-        
-        # 4. Library Items
+                cursor.execute('SELECT name FROM artists WHERE id=?', (target_id,))
+                if cursor.fetchone() and not existing:
+                    target_id = generate_id()
+                cursor.execute('''
+                    INSERT INTO artists (id, name) VALUES (?, ?)
+                    ON CONFLICT(id) DO UPDATE SET name=excluded.name
+                ''', (target_id, artist['name']))
+                artist_ids[artist['id']] = target_id
+
+        library_ids = {}
         if 'library_items' in data:
             for item in data['library_items']:
+                category_id = category_ids.get(item.get('category_id'), item.get('category_id'))
+                artist_id = artist_ids.get(item.get('artist_id'), item.get('artist_id'))
                 cursor.execute('''
-                    INSERT OR REPLACE INTO library_items (id, name, category_id, artist_id, star_rating, notes, created_at)
+                    INSERT INTO library_items (id, name, category_id, artist_id, star_rating, notes, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (item['id'], item['name'], item.get('category_id'), item.get('artist_id'),
+                    ON CONFLICT(id) DO UPDATE SET name=excluded.name, category_id=excluded.category_id,
+                        artist_id=excluded.artist_id, star_rating=excluded.star_rating, notes=excluded.notes
+                ''', (item['id'], item['name'], category_id, artist_id,
                       item.get('star_rating', 0), item.get('notes', ''), item.get('created_at')))
-        
-        # 5. Sessions
+                library_ids[item['id']] = item['id']
+
+        session_ids = {}
         if 'sessions' in data:
             for sess in data['sessions']:
+                instrument_id = instrument_ids.get(sess.get('instrument_id'), sess.get('instrument_id'))
                 cursor.execute('''
-                    INSERT OR REPLACE INTO sessions (id, instrument_id, status, date, start_time, end_time, total_time, notes, created_at)
+                    INSERT INTO sessions (id, instrument_id, status, date, start_time, end_time, total_time, notes, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (sess['id'], sess.get('instrument_id'), sess.get('status'), sess['date'],
+                    ON CONFLICT(id) DO UPDATE SET instrument_id=excluded.instrument_id, status=excluded.status,
+                        date=excluded.date, start_time=excluded.start_time, end_time=excluded.end_time,
+                        total_time=excluded.total_time, notes=excluded.notes
+                ''', (sess['id'], instrument_id, sess.get('status'), sess['date'],
                       sess.get('start_time'), sess.get('end_time'), sess.get('total_time', 0),
                       sess.get('notes', ''), sess.get('created_at')))
-        
-        # 6. Session Items
+                session_ids[sess['id']] = sess['id']
+
         if 'session_items' in data:
             for item in data['session_items']:
+                category_id = category_ids.get(item.get('category_id'), item.get('category_id'))
+                library_item_id = library_ids.get(item.get('library_item_id'), item.get('library_item_id'))
+                session_id = session_ids.get(item['session_id'], item['session_id'])
                 cursor.execute('''
-                    INSERT OR REPLACE INTO session_items (id, session_id, library_item_id, name, category_id, time_spent, started_at)
+                    INSERT INTO session_items (id, session_id, library_item_id, name, category_id, time_spent, started_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (item['id'], item['session_id'], item.get('library_item_id'), item['name'],
-                      item.get('category_id'), item.get('time_spent', 0), item.get('started_at')))
-        
+                    ON CONFLICT(id) DO UPDATE SET session_id=excluded.session_id,
+                        library_item_id=excluded.library_item_id, name=excluded.name,
+                        category_id=excluded.category_id, time_spent=excluded.time_spent,
+                        started_at=excluded.started_at
+                ''', (item['id'], session_id, library_item_id, item['name'],
+                      category_id, item.get('time_spent', 0), item.get('started_at')))
+
         # 7. Settings
         if 'settings' in data:
             for setting in data['settings']:
@@ -1069,12 +1285,9 @@ def import_data():
         conn.commit()
         return jsonify({'status': 'success', 'message': 'Data imported successfully'})
     except Exception as e:
-        print(f"Error importing data: {e}")
+        app.logger.exception('Error importing data')
         conn.rollback()
         return jsonify({'error': str(e)}), 500
-    finally:
-        conn.close()
-
 @app.route('/api/clear', methods=['POST'])
 def clear_data():
     """Clear all data except defaults and preserved user info"""
@@ -1117,9 +1330,6 @@ def clear_data():
     except Exception as e:
         conn.rollback()
         return jsonify({'error': str(e)}), 500
-    finally:
-        conn.close()
-
 @app.route('/manifest.json')
 def serve_manifest():
     return send_from_directory('static', 'manifest.json')

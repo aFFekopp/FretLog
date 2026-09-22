@@ -65,3 +65,25 @@ The easiest way to run FretLog is using Docker Compose with the pre-built image.
 
 ## License
 Intended for personal use. Feel free to fork and adapt it to your needs.
+
+## Development Checks
+
+Install the pinned Python dependencies and run the regression suite:
+
+```bash
+python -m pip install -r requirements.txt
+python -m unittest discover -s tests -v
+```
+
+The test suite covers API lifecycle behavior, validation, imports, statistics, pagination, page routes, and core PWA assets. GitHub Actions runs it automatically for pushes and pull requests targeting `main`.
+
+Run the Playwright browser checks separately:
+
+```bash
+npm install
+npx playwright install chromium
+npm run test:e2e
+```
+
+The browser suite checks desktop and mobile navigation, theme persistence, modal keyboard behavior, focus restoration, PWA registration, practice-session cancellation, timer elapsed time, and critical accessibility violations.
+GitHub Actions runs the browser suite automatically for pushes and pull requests targeting `main`.

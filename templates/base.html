@@ -88,18 +88,18 @@
                     <span id="global-active-item-timer" class="text-primary font-bold"
                         style="font-size: 0.8rem; line-height: 1.2;">00:00</span>
                 </div>
-                <button class="icon-btn hidden" id="global-pause-btn" title="Pause Active Timer"
-                    onclick="toggleGlobalTimer()"
+                <button class="icon-btn hidden" id="global-pause-btn" title="Pause Active Timer" aria-label="Pause active timer"
+                    data-action="toggle-global-timer"
                     style="color: var(--color-primary); background: rgba(74, 95, 217, 0.1);">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="6" y="4" width="4" height="16"></rect>
                         <rect x="14" y="4" width="4" height="16"></rect>
                     </svg>
                 </button>
-                <button class="icon-btn" id="theme-toggle" title="Toggle theme">
+                <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">
                     <span class="theme-icon">🌙</span>
                 </button>
-                <a href="/settings" class="icon-btn" title="Settings">
+                <a href="/settings" class="icon-btn" title="Settings" aria-label="Settings">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3" />
                         <path
@@ -107,7 +107,8 @@
                     </svg>
                 </a>
                 <div class="user-profile instrument-selector" id="change-instrument-btn" title="Change Instrument"
-                    onclick="openModal('change-instrument-modal')">
+                    role="button" tabindex="0" aria-label="Change instrument"
+                    data-action="open-modal" data-modal="change-instrument-modal">
                     <div class="user-avatar" id="user-avatar"
                         style="font-size: 1.2rem; display: flex; align-items: center; justify-content: center;">{{
                         current_instrument.icon or '🎸' }}</div>
@@ -189,7 +190,7 @@
         <div class="modal">
             <div class="modal-header">
                 <h3 class="modal-title">Select Instrument</h3>
-                <button class="modal-close" onclick="closeModal('change-instrument-modal')">
+                <button class="modal-close" aria-label="Close instrument selector" data-action="close-modal" data-modal="change-instrument-modal">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18" />
                         <line x1="6" y1="6" x2="18" y2="18" />
@@ -205,7 +206,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('change-instrument-modal')">Cancel</button>
+                <button class="btn btn-secondary" data-action="close-modal" data-modal="change-instrument-modal">Cancel</button>
                 <button class="btn btn-primary" id="confirm-instrument">Select</button>
             </div>
         </div>
@@ -217,61 +218,11 @@
     <script src="{{ url_for('static', filename='js/timer.js') }}"></script>
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
 
-    <script>
-        // Shared logic for all pages
-        (function () {
-            // Load cache immediately to show user data if available
-            if (FretLogData && FretLogData.loadFromCache) {
-                FretLogData.loadFromCache();
-            }
-
-            // Initial user display update
-            updateUserDisplay();
-
-            // Handle instrument change
-            const confirmBtn = document.getElementById('confirm-instrument');
-            const instrumentSelect = document.getElementById('select-instrument');
-
-            if (confirmBtn && instrumentSelect) {
-                // Populate instruments
-                const instruments = FretLogData.getInstruments().sort((a, b) => a.name.localeCompare(b.name));
-                instrumentSelect.innerHTML = instruments.map(i =>
-                    `<option value="${i.id}">${i.icon} ${i.name}</option>`
-                ).join('');
-
-                const currentInst = FretLogData.getCurrentInstrument();
-                if (currentInst) {
-                    instrumentSelect.value = currentInst.id;
-                }
-
-                confirmBtn.onclick = async () => {
-                    const instrumentId = instrumentSelect.value;
-                    await FretLogData.saveDefaultInstrument(instrumentId);
-                    updateUserDisplay();
-                    closeModal('change-instrument-modal');
-                    // Reload if page logic depends on instrument
-                    if (window.onInstrumentChange) window.onInstrumentChange();
-                };
-            }
-        })();
-    </script>
+    <script src="{{ url_for('static', filename='js/base-init.js') }}"></script>
 
     {% block scripts %}{% endblock %}
 
-    <script>
-        // Register Service Worker for PWA
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                    })
-                    .catch(err => {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
-            });
-        }
-    </script>
+    <script src="{{ url_for('static', filename='js/service-worker-register.js') }}"></script>
 </body>
 
 </html>

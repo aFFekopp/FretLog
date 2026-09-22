@@ -19,7 +19,9 @@ const FretLogData = {
         sessions: [],
         currentSession: null,
         theme: 'dark',
-        _initialized: false
+        _initialized: false,
+        _cacheLoaded: false,
+        _versionChecked: false
     },
 
     // Helper to get YYYY-MM-DD in local time
@@ -56,11 +58,17 @@ const FretLogData = {
             if (!response.ok) {
                 const text = await response.text();
                 console.error(`API Error ${response.status}: ${text}`);
+                if (endpoint !== '/init' && typeof showNotification === 'function') {
+                    showNotification('The operation could not be completed.', 'error');
+                }
                 throw new Error(`API error: ${response.status}`);
             }
             return await response.json();
         } catch (error) {
             console.error(`API call failed: ${endpoint}`, error);
+            if (endpoint !== '/init' && typeof showNotification === 'function' && !error.message.startsWith('API error:')) {
+                showNotification('Unable to connect to FretLog.', 'error');
+            }
             throw error;
         }
     },
@@ -92,24 +100,25 @@ const FretLogData = {
         }
 
         if (s.items) {
-            norm.items = s.items.map(i => {
-                const item = { ...i };
-                if (i.library_item_id) item.libraryItemId = i.library_item_id;
-                if (i.category_id) item.categoryId = i.category_id;
-                if (i.time_spent !== undefined) item.timeSpent = i.time_spent;
-                if (i.started_at) item.startedAt = i.started_at;
-
-                // Normalize item times
-                if (item.timeSpent !== undefined && !isNaN(item.timeSpent) && typeof item.timeSpent === 'string') {
-                    item.timeSpent = parseInt(item.timeSpent);
-                }
-                if (item.startedAt && !isNaN(item.startedAt) && typeof item.startedAt === 'string') {
-                    item.startedAt = parseInt(item.startedAt);
-                }
-                return item;
-            });
+            norm.items = s.items.map(item => this._normalizeSessionItem(item));
         }
         return norm;
+    },
+
+    _normalizeSessionItem(i) {
+        const item = { ...i };
+        if (i.library_item_id !== undefined) item.libraryItemId = i.library_item_id;
+        if (i.category_id !== undefined) item.categoryId = i.category_id;
+        if (i.time_spent !== undefined) item.timeSpent = i.time_spent;
+        if (i.started_at !== undefined) item.startedAt = i.started_at;
+
+        if (item.timeSpent !== undefined && !isNaN(item.timeSpent) && typeof item.timeSpent === 'string') {
+            item.timeSpent = parseInt(item.timeSpent);
+        }
+        if (item.startedAt !== undefined && !isNaN(item.startedAt) && typeof item.startedAt === 'string') {
+            item.startedAt = parseInt(item.startedAt);
+        }
+        return item;
     },
 
     _normalizeLibraryItem(i) {
@@ -119,6 +128,18 @@ const FretLogData = {
         if (i.artist_id) norm.artistId = i.artist_id;
         if (i.star_rating !== undefined) norm.starRating = i.star_rating;
         return norm;
+    },
+
+    _normalizeCategory(c) {
+        return c ? { ...c, categoryId: c.category_id ?? c.id } : null;
+    },
+
+    _normalizeInstrument(i) {
+        return i ? { ...i, instrumentId: i.instrument_id ?? i.id } : null;
+    },
+
+    _normalizeArtist(a) {
+        return a ? { ...a, artistId: a.artist_id ?? a.id } : null;
     },
 
     _normalizeUser(u) {
@@ -131,21 +152,24 @@ const FretLogData = {
     // Initialize - load initial data from API (single request)
     _initPromise: null,
     async init() {
-        // Version check for cache busting
-        const storedVersion = localStorage.getItem('fretlog_version');
-        if (storedVersion !== this.APP_VERSION) {
-            console.log(`Version mismatch (stored: ${storedVersion}, app: ${this.APP_VERSION}). Clearing cache...`);
-            this._clearSiteCache();
-            localStorage.setItem('fretlog_version', this.APP_VERSION);
-        }
-
-        // Initial load from local cache for instant UI
-        this.loadFromCache();
-
         // Return existing promise if init is already in progress or complete
         if (this._initPromise) {
             return this._initPromise;
         }
+
+        // Perform local bootstrap once, even though multiple page modules call init().
+        if (!this._versionChecked) {
+            const storedVersion = localStorage.getItem('fretlog_version');
+            if (storedVersion !== this.APP_VERSION) {
+                console.log(`Version mismatch (stored: ${storedVersion}, app: ${this.APP_VERSION}). Clearing cache...`);
+                this._clearSiteCache();
+                localStorage.setItem('fretlog_version', this.APP_VERSION);
+            }
+            this._versionChecked = true;
+        }
+
+        // Load cached data synchronously for instant UI rendering.
+        this.loadFromCache();
 
         // Create and store the init promise
         this._initPromise = this._doInit();
@@ -163,8 +187,9 @@ const FretLogData = {
 
     // Public method to load cache (idempotent-ish)
     loadFromCache() {
-        if (!this._cache._initialized) {
+        if (!this._cache._cacheLoaded) {
             this._loadCache();
+            this._cache._cacheLoaded = true;
         }
     },
 
@@ -244,11 +269,11 @@ const FretLogData = {
             // Update cache with normalized data
             this._cache.user = this._normalizeUser(user);
             this._cache.categories = (categories || []).map(c => ({
-                ...c,
+                ...this._normalizeCategory(c),
                 color: c.color || this._getRandomColor()
             }));
-            this._cache.instruments = instruments || [];
-            this._cache.artists = artists || [];
+            this._cache.instruments = (instruments || []).map(i => this._normalizeInstrument(i));
+            this._cache.artists = (artists || []).map(a => this._normalizeArtist(a));
             this._cache.library = (library || []).map(i => this._normalizeLibraryItem(i));
             this._cache.sessions = (sessions || []).map(s => this._normalizeSession(s));
             this._cache.theme = theme || 'dark';
@@ -323,7 +348,7 @@ const FretLogData = {
             method: 'POST',
             body: category
         });
-        const saved = result;
+        const saved = this._normalizeCategory(result);
         this._cache.categories.push(saved);
         this._updateCache('categories', this._cache.categories);
         return saved;
@@ -341,10 +366,10 @@ const FretLogData = {
         });
         const index = this._cache.categories.findIndex(c => c.id === id);
         if (index !== -1) {
-            this._cache.categories[index] = result;
+            this._cache.categories[index] = this._normalizeCategory(result);
             this._updateCache('categories', this._cache.categories);
         }
-        return result;
+        return this._normalizeCategory(result);
     },
 
     async deleteCategory(id) {
@@ -371,10 +396,10 @@ const FretLogData = {
             method: 'POST',
             body: instrument
         });
-        const saved = result;
+        const saved = this._normalizeInstrument(result);
         this._cache.instruments.push(saved);
         this._updateCache('instruments', this._cache.instruments);
-        return this._cache.instruments;
+        return saved;
     },
 
     async updateInstrument(id, updates) {
@@ -384,10 +409,10 @@ const FretLogData = {
         });
         const index = this._cache.instruments.findIndex(i => i.id === id);
         if (index !== -1) {
-            this._cache.instruments[index] = result;
+            this._cache.instruments[index] = this._normalizeInstrument(result);
             this._updateCache('instruments', this._cache.instruments);
         }
-        return result;
+        return this._normalizeInstrument(result);
     },
 
     async deleteInstrument(id) {
@@ -415,11 +440,12 @@ const FretLogData = {
             body: { name }
         });
         // Only add if not already in cache
-        if (!this._cache.artists.find(a => a.id === result.id)) {
-            this._cache.artists.push(result);
+        const normalized = this._normalizeArtist(result);
+        if (!this._cache.artists.find(a => a.id === normalized.id)) {
+            this._cache.artists.push(normalized);
             this._updateCache('artists', this._cache.artists);
         }
-        return result;
+        return normalized;
     },
 
     async findOrCreateArtist(name) {
@@ -445,10 +471,10 @@ const FretLogData = {
         });
         const index = this._cache.artists.findIndex(a => a.id == id);
         if (index !== -1) {
-            this._cache.artists[index] = result;
+            this._cache.artists[index] = this._normalizeArtist(result);
             this._updateCache('artists', this._cache.artists);
         }
-        return result;
+        return this._normalizeArtist(result);
     },
 
     // ==========================================
@@ -641,14 +667,19 @@ const FretLogData = {
 
     async updateSessionItemTime(itemId, timeSpent) {
         const session = this.getCurrentSession();
-        if (session) {
-            const item = session.items.find(i => i.id === itemId);
-            if (item) {
-                item.timeSpent = timeSpent;
-                return await this.saveCurrentSession(session);
-            }
+        if (!session || !session.items?.some(item => item.id === itemId)) {
+            return session;
         }
-        return session;
+
+        // Update only the item being timed to avoid replacing sibling items.
+        const result = await this._fetch(`/sessions/current/items/${itemId}`, {
+            method: 'PUT',
+            body: { timeSpent }
+        });
+        const normalized = this._normalizeSession(result);
+        this._cache.currentSession = normalized;
+        this._updateCache('currentSession', normalized);
+        return normalized;
     },
 
     // ==========================================

@@ -1,6 +1,6 @@
 services:
   fretlog:
-    image: ghcr.io/affekopp/fretlog:main
+    image: ghcr.io/affekopp/fretlog:latest
     container_name: fretlog
     restart: unless-stopped
     ports:

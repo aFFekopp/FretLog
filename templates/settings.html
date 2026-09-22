@@ -132,7 +132,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3 class="modal-title" id="instrument-modal-title">Add Instrument</h3>
-            <button class="modal-close" onclick="closeModal('instrument-modal')">
+            <button class="modal-close" aria-label="Close instrument modal" data-action="close-modal" data-modal="instrument-modal">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
@@ -151,7 +151,7 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal('instrument-modal')">Cancel</button>
+            <button class="btn btn-secondary" data-action="close-modal" data-modal="instrument-modal">Cancel</button>
             <button class="btn btn-primary" id="save-instrument-btn">Save</button>
         </div>
     </div>
@@ -161,7 +161,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3 class="modal-title" id="category-modal-title">Add Category</h3>
-            <button class="modal-close" onclick="closeModal('category-modal')">
+            <button class="modal-close" aria-label="Close category modal" data-action="close-modal" data-modal="category-modal">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
@@ -184,7 +184,7 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal('category-modal')">Cancel</button>
+            <button class="btn btn-secondary" data-action="close-modal" data-modal="category-modal">Cancel</button>
             <button class="btn btn-primary" id="save-category-btn">Save</button>
         </div>
     </div>
@@ -194,7 +194,7 @@
     <div class="modal">
         <div class="modal-header">
             <h3 class="modal-title" id="delete-modal-title">Delete?</h3>
-            <button class="modal-close" onclick="closeModal('delete-modal')">
+            <button class="modal-close" aria-label="Close delete confirmation" data-action="close-modal" data-modal="delete-modal">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
@@ -205,7 +205,7 @@
             <p id="delete-modal-message"></p>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModal('delete-modal')">Cancel</button>
+            <button class="btn btn-secondary" data-action="close-modal" data-modal="delete-modal">Cancel</button>
             <button class="btn btn-danger" id="confirm-delete-btn">Delete</button>
         </div>
     </div>
@@ -225,7 +225,7 @@
             </div>
         </div>
         <div class="modal-footer"><button class="btn btn-secondary"
-                onclick="closeModal('clear-data-modal')">Cancel</button><button class="btn btn-danger"
+                data-action="close-modal" data-modal="clear-data-modal">Cancel</button><button class="btn btn-danger"
                 id="confirm-clear-data-btn">Clear All Data</button></div>
     </div>
 </div>
@@ -245,14 +245,16 @@
             </div>
         </div>
         <div class="modal-footer"><button class="btn btn-secondary"
-                onclick="closeModal('import-preview-modal')">Close</button><button class="btn btn-primary"
+                data-action="close-modal" data-modal="import-preview-modal">Close</button><button class="btn btn-primary"
                 id="final-confirm-import-btn">Proceed</button></div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script src="{{ url_for('static', filename='js/emoji-picker.js') }}"></script>
+<script src="{{ url_for('static', filename='js/settings-page.js') }}?v={{ APP_VERSION }}"></script>
+<div hidden>
     let delType = null, delId = null;
     let pendingImport = null;
 
@@ -262,7 +264,7 @@
         document.getElementById('instruments-list').innerHTML = insts.sort((a, b) => a.name.localeCompare(b.name)).map(i => {
             const isDefault = currentInst?.id === i.id;
             return `
-            <tr onclick="setDefaultInst('${i.id}')" style="cursor: pointer; ${isDefault ? 'background-color: rgba(var(--color-primary-rgb), 0.1); border-left: 3px solid var(--color-primary);' : ''}">
+            <tr data-action="set-default-instrument" data-id="${escapeHtml(i.id)}" style="cursor: pointer; ${isDefault ? 'background-color: rgba(var(--color-primary-rgb), 0.1); border-left: 3px solid var(--color-primary);' : ''}">
                 <td style="font-size: 1.25rem;">${i.icon}</td>
                 <td class="font-medium">
                     ${i.name}
@@ -270,10 +272,10 @@
                 </td>
                 <td class="text-right">
                     <div class="flex gap-xs justify-end">
-                        <button class="btn btn-ghost btn-icon btn-sm" onclick="event.stopPropagation(); editInst('${i.id}')" title="Edit">
+                        <button class="btn btn-ghost btn-icon btn-sm" data-action="edit-instrument" data-id="${escapeHtml(i.id)}" title="Edit">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                         </button>
-                        <button class="btn btn-ghost btn-icon btn-sm text-danger" onclick="event.stopPropagation(); confirmDelInst('${i.id}', '${i.name}')" title="Delete">
+                        <button class="btn btn-ghost btn-icon btn-sm text-danger" data-action="delete-instrument" data-id="${escapeHtml(i.id)}" data-name="${escapeHtml(i.name)}" title="Delete">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                         </button>
                     </div>
@@ -290,11 +292,11 @@
                 <td><span class="badge" style="background:${c.color}1a; color:${c.color}; border:1px solid ${c.color}33;">${c.type}</span></td>
                 <td class="text-right">
                     <div class="flex gap-xs justify-end">
-                        <button class="btn btn-ghost btn-icon btn-sm" onclick="editCat('${c.id}')" title="Edit">
+                        <button class="btn btn-ghost btn-icon btn-sm" data-action="edit-category" data-id="${escapeHtml(c.id)}" title="Edit">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                         </button>
                         ${(c.name === 'Song' || c.name === 'Songs') ? '<div style="width:28px"></div>' : `
-                        <button class="btn btn-ghost btn-icon btn-sm text-danger" onclick="confirmDelCat('${c.id}', '${c.name}')" title="Delete">
+                         <button class="btn btn-ghost btn-icon btn-sm text-danger" data-action="delete-category" data-id="${escapeHtml(c.id)}" data-name="${escapeHtml(c.name)}" title="Delete">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                         </button>`}
                     </div>
@@ -439,9 +441,8 @@
         document.getElementById('clear-data-btn').addEventListener('click', () => { document.getElementById('confirm-clear-text').value = ''; openModal('clear-data-modal'); });
         document.getElementById('confirm-clear-data-btn').addEventListener('click', async () => { if (document.getElementById('confirm-clear-text').value === 'Confirm') { await FretLogData.resetAllData(); location.reload(); } else document.getElementById('clear-confirm-error').classList.remove('hidden'); });
     });
-</script>
-<script src="{{ url_for('static', filename='js/emoji-picker.js') }}"></script>
-<script>
+</div>
+<div hidden>
     // Initialize Emoji Pickers
     document.addEventListener('DOMContentLoaded', () => {
         if (window.FretLogEmojiPicker) {
@@ -449,6 +450,6 @@
             FretLogEmojiPicker.attach('category-icon');
         }
     });
-</script>
+</div>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 {% endblock %}

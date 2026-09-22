@@ -56,7 +56,6 @@ function updateMotivationCard() {
 // ==========================================
 // Utility Functions
 // ==========================================
-// Utility Functions
 function formatTime(ms) {
     return FretLogTimer.formatTime(ms);
 }
@@ -181,7 +180,7 @@ function updateRecentPractice() {
         const category = categories.find(c => c.id === (item.categoryId || item.category_id));
         const timeSpent = item.timeSpent || item.time_spent || 0;
         const categoryBadge = category ?
-            `<span class="badge" style="background-color: ${category.color}1a; color: ${category.color}; border: 1px solid ${category.color}33; margin-left: var(--spacing-sm);">${category.icon} ${category.name}</span>` :
+            `<span class="badge" style="background-color: ${escapeHtml(category.color)}1a; color: ${escapeHtml(category.color)}; border: 1px solid ${escapeHtml(category.color)}33; margin-left: var(--spacing-sm);">${escapeHtml(category.icon)} ${escapeHtml(category.name)}</span>` :
             '<span class="badge badge-secondary">Unknown Category</span>';
 
         // Format date: "Feb 6, 2026"
@@ -191,7 +190,7 @@ function updateRecentPractice() {
             <li class="practice-item">
                 <div class="practice-item-info">
                     <span class="practice-item-name">
-                        ${item.name}
+                        ${escapeHtml(item.name)}
                         ${categoryBadge}
                     </span>
                     <span class="practice-item-meta hidden-sm">${dateStr}</span>
@@ -226,7 +225,7 @@ function updateMostPracticed(period = 'month') {
         const libraryItem = libraryItems.find(li => li.id === item.id);
         const category = categories.find(c => c.id === (libraryItem?.categoryId || libraryItem?.category_id));
         const categoryBadge = category ?
-            `<span class="badge" style="background-color: ${category.color}1a; color: ${category.color}; border: 1px solid ${category.color}33; margin-left: var(--spacing-sm);">${category.icon} ${category.name}</span>` :
+            `<span class="badge" style="background-color: ${escapeHtml(category.color)}1a; color: ${escapeHtml(category.color)}; border: 1px solid ${escapeHtml(category.color)}33; margin-left: var(--spacing-sm);">${escapeHtml(category.icon)} ${escapeHtml(category.name)}</span>` :
             '';
 
         return `
@@ -234,7 +233,7 @@ function updateMostPracticed(period = 'month') {
                 <div class="practice-item-info">
                     <span class="practice-item-name">
                         <span class="text-secondary" style="margin-right: 8px;">#${index + 1}</span>
-                        ${item.name}
+                        ${escapeHtml(item.name)}
                         ${categoryBadge}
                     </span>
                 </div>
@@ -382,25 +381,23 @@ function updateSessionItemsList() {
                 <input type="number" id="custom-time-h-${item.id}" class="form-input custom-time-no-spin"
                     style="${inputStyle}"
                     value="${currentHours}" min="0" max="23" placeholder="h"
-                    onkeydown="if(event.key==='Enter') confirmCustomTime('${item.id}')"
-                    onclick="event.stopPropagation()"
+                    data-action="stop-propagation" data-enter-action="confirm-custom-time" data-id="${escapeHtml(item.id) }"
                 >
                 <span class="text-secondary" style="font-size:0.75rem;">h</span>
                 <input type="number" id="custom-time-m-${item.id}" class="form-input custom-time-no-spin"
                     style="${inputStyle}"
                     value="${currentMins}" min="0" max="59" placeholder="m"
-                    onkeydown="if(event.key==='Enter') confirmCustomTime('${item.id}')"
-                    onclick="event.stopPropagation()"
+                    data-action="stop-propagation" data-enter-action="confirm-custom-time" data-id="${escapeHtml(item.id) }"
                 >
                 <span class="text-secondary" style="font-size:0.75rem;">m</span>
                 <button class="btn btn-primary btn-sm" style="padding: 3px 8px;"
-                    onclick="confirmCustomTime('${item.id}')" title="Save time">
+                    data-action="confirm-custom-time" data-id="${escapeHtml(item.id) }" title="Save time">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
                 </button>
                 <button class="btn btn-ghost btn-sm" style="padding: 3px 6px;"
-                    onclick="cancelCustomTime()" title="Cancel">
+                    data-action="cancel-custom-time" title="Cancel">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
@@ -410,7 +407,7 @@ function updateSessionItemsList() {
                 <span class="practice-item-time" id="item-time-${item.id}">${FretLogTimer.formatDuration(timeSpent)}</span>
                 <button class="btn btn-ghost btn-sm" title="Set custom time"
                     style="padding: 2px 4px; opacity: 0.5;"
-                    onclick="setCustomItemTime('${item.id}')">
+                    data-action="set-custom-item-time" data-id="${escapeHtml(item.id) }">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -422,21 +419,21 @@ function updateSessionItemsList() {
             <li class="practice-list-item practice-item ${isActive ? 'active' : ''}" data-item-id="${item.id}">
                 <div class="practice-item-actions" style="margin-right: var(--spacing-sm); width: 70px; flex-shrink: 0; justify-content: center;">
                     ${isActive
-                ? `<button class="btn btn-secondary btn-sm" onclick="pauseItem('${item.id}')" style="width: 100%;">Pause</button>`
-                : `<button class="btn btn-primary btn-sm" onclick="playItem('${item.id}')" style="width: 100%;">Play</button>`
+                ? `<button class="btn btn-secondary btn-sm" data-action="pause-item" data-id="${escapeHtml(item.id) }" style="width: 100%;">Pause</button>`
+                : `<button class="btn btn-primary btn-sm" data-action="play-item" data-id="${escapeHtml(item.id) }" style="width: 100%;">Play</button>`
             }
                 </div>
-                <span class="badge" style="background-color: ${category?.color}1a; color: ${category?.color}; border: 1px solid ${category?.color}33; margin-right: var(--spacing-sm);">${category?.icon || '🎵'} ${category?.name || 'Unknown'}</span>
+                <span class="badge" style="background-color: ${escapeHtml(category?.color || '')}1a; color: ${escapeHtml(category?.color || '')}; border: 1px solid ${escapeHtml(category?.color || '')}33; margin-right: var(--spacing-sm);">${escapeHtml(category?.icon || '🎵')} ${escapeHtml(category?.name || 'Unknown')}</span>
                 <div class="practice-item-info">
-                    <span class="practice-item-name">${item.name}</span>
+                    <span class="practice-item-name">${escapeHtml(item.name)}</span>
                     <div class="star-rating desktop-only" style="margin-left: 8px; font-size: 0.9em; vertical-align: middle;"
-                         onclick="updateDashboardRating('${libItem?.id}', event)">
+                         data-action="update-dashboard-rating" data-id="${escapeHtml(libItem?.id || '')}">
                         ${starsHtml}
                     </div>
                 </div>
                 ${timeCell}
                 <div class="practice-item-actions">
-                    <button class="btn btn-ghost btn-sm" onclick="removeSessionItem('${item.id}')">×</button>
+                    <button class="btn btn-ghost btn-sm" data-action="remove-session-item" data-id="${escapeHtml(item.id) }">×</button>
                 </div>
             </li>
         `;
@@ -659,12 +656,11 @@ async function restoreActiveSessionState() {
 
 // Initialize when data is ready
 window.addEventListener('fretlog-data-ready', () => {
-    initDashboard();
+    if (typeof initDashboard === 'function') initDashboard();
 });
 
 // Make functions globally available
 window.startSession = startSession;
-function dummyRestOfFile() { } // Just to match range if needed but let's be precise
 window.playItem = playItem;
 window.pauseItem = pauseItem;
 window.removeSessionItem = removeSessionItem;
@@ -844,12 +840,13 @@ async function cancelSession() {
 // ==========================================
 // Add Item Modal
 // ==========================================
-function openAddItemModal() {
+async function openAddItemModal() {
+    await FretLogData.init();
     const categories = FretLogData.getCategories();
     const categorySelect = document.getElementById('add-item-category');
 
     categorySelect.innerHTML = categories.map(c =>
-        `<option value="${c.id}">${c.icon} ${c.name}</option>`
+        `<option value="${escapeHtml(c.id)}">${escapeHtml(c.icon)} ${escapeHtml(c.name)}</option>`
     ).join('');
 
     updateAddItemCategory();
@@ -877,7 +874,7 @@ function populateArtistFilter() {
     const select = document.getElementById('add-item-artist');
 
     select.innerHTML = '<option value="">All Artists</option>' +
-        artists.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+        artists.map(a => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)}</option>`).join('');
 }
 
 function populateItemSelect() {
@@ -942,7 +939,7 @@ function populateItemSelect() {
         newItemGroup?.classList.remove('hidden');
     } else {
         select.innerHTML = '<option value="">Select an item...</option>' +
-            items.map(i => `<option value="${i.id}">${i.name}${topRecentIds.has(i.id) ? ' (Recent)' : ''}</option>`).join('');
+            items.map(i => `<option value="${escapeHtml(i.id)}">${escapeHtml(i.name)}${topRecentIds.has(i.id) ? ' (Recent)' : ''}</option>`).join('');
         newItemGroup?.classList.add('hidden');
     }
 }
@@ -970,7 +967,7 @@ function openChangeInstrumentModal() {
     if (!select) return;
 
     select.innerHTML = instruments.map(i =>
-        `<option value="${i.id}" ${i.id === user?.defaultInstrumentId ? 'selected' : ''}>${i.icon} ${i.name}</option>`
+        `<option value="${escapeHtml(i.id)}" ${i.id === user?.defaultInstrumentId ? 'selected' : ''}>${escapeHtml(i.icon)} ${escapeHtml(i.name)}</option>`
     ).join('');
 
     openModal('change-instrument-modal');
@@ -1010,7 +1007,9 @@ function setupEventListeners() {
     document.getElementById('start-session-btn')?.addEventListener('click', startSession);
 
     // Add item button (in session)
-    document.getElementById('add-item-btn')?.addEventListener('click', openAddItemModal);
+    if (document.getElementById('add-item-category')) {
+        document.getElementById('add-item-btn')?.addEventListener('click', openAddItemModal);
+    }
 
     // End session button
     document.getElementById('end-session-btn')?.addEventListener('click', endSession);
